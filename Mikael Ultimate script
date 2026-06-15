@@ -1,6 +1,7 @@
 --[[
-    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 1.9.8)
-    Inneholder: Fly, Noclip, Click TP, Sitt, Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER + TØFF VERSJONS-BADGE + TRACER MODUS POPUP + RGB ESP (Chest Tracers).
+    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 1.9.9 - STABIL)
+    Inneholder: Fly, Noclip, Click TP, Sitt, Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER,
+    RGB ESP (Chest Tracers), samt en helt ny AIMBOT Seksjon med Smoothness, Insta Lock og FOV sirkel!
 ]]
 
 local Players = game:GetService("Players")
@@ -15,7 +16,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
 -- ===================== INNSTILLINGER =====================
-local menuVersion = "v1.9.8"
+local menuVersion = "v1.9.9"
 local flySpeed = 50
 local currentWalkSpeed = 16
 local currentJumpPower = 50
@@ -29,19 +30,26 @@ local infJumpEnabled = false
 local fullbrightEnabled = false
 local hitboxEnabled = false
 
+-- Aimbot Innstillinger
+local aimbotEnabled = false
+local aimbotSmoothness = 5
+local aimbotInstaLock = false
+local fovCircleEnabled = false
+local fovCircleRadius = 100
+
 -- ESP Innstillinger
 local espEnabled = false
 local espNamesEnabled = false
 local espHealthEnabled = false
 local espLinesEnabled = false
-local tracerOriginMode = 1 -- 1 = Bunn, 2 = Topp, 3 = Avatar
+local tracerOriginMode = 1 
 
 -- ESP Farge Innstillinger
 local rainbowEspEnabled = false
 local espColorR = 0
 local espColorG = 255
 local espColorB = 120
-local espColor = Color3.fromRGB(espColorR, espColorG, espColorB)
+local espColor = Color3.fromRGB(0, 255, 120)
 
 local bodyVelocity, bodyGyro
 local noclipConnection
@@ -49,14 +57,29 @@ local fullbrightConnection
 local originalLighting = {} 
 local espConnections = {}
 local tracerFrames = {}
-
 local animatedSliders = {}
 
-local function getHumanoid()
-    return player.Character and player.Character:FindFirstChild("Humanoid")
+-- Trygg opprettelse av FOV-sirkel (hindrer krasj på svake executorer)
+local fovCircle = nil
+if Drawing and Drawing.new then
+    pcall(function()
+        fovCircle = Drawing.new("Circle")
+        fovCircle.Thickness = 1.5
+        fovCircle.Color = Color3.fromRGB(255, 255, 255)
+        fovCircle.Filled = false
+        fovCircle.Transparency = 1
+        fovCircle.Visible = false
+    end)
 end
 
--- ===================== SIKKERHET FOR EXECUTORS =====================
+local function getHumanoid()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        return player.Character.Humanoid
+    end
+    return nil
+end
+
+-- ===================== SIKKERHET FOR RE-EXECUTION =====================
 local guiName = "MikaelUltimateMenu"
 pcall(function()
     if gethui and gethui():FindFirstChild(guiName) then
@@ -73,12 +96,18 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = guiName
 screenGui.ResetOnSpawn = false
 
-pcall(function()
-    if gethui then screenGui.Parent = gethui() else screenGui.Parent = CoreGui end
+local successParent, _ = pcall(function()
+    if gethui then 
+        screenGui.Parent = gethui() 
+    else 
+        screenGui.Parent = CoreGui 
+    end
 end)
-if not screenGui.Parent then screenGui.Parent = player:WaitForChild("PlayerGui") end
 
--- Mappe for ESP-linjer
+if not successParent or not screenGui.Parent then 
+    screenGui.Parent = player:WaitForChild("PlayerGui") 
+end
+
 local tracerFolder = Instance.new("Folder")
 tracerFolder.Name = "TracerFolder"
 tracerFolder.Parent = screenGui
@@ -102,7 +131,7 @@ local uiScale = Instance.new("UIScale")
 uiScale.Scale = 0
 uiScale.Parent = mainFrame
 
--- ===================== TOPPLINJE & TØFF VERSJONS-BADGE =====================
+-- ===================== TOPPLINJE & VERSJONS-BADGE =====================
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 55)
 titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 33)
@@ -139,7 +168,6 @@ mikaelLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 mikaelLabel.TextXAlignment = Enum.TextXAlignment.Center
 mikaelLabel.Parent = titleBar
 
--- VERSJONS-BADGE (Tøft design)
 local versionBadge = Instance.new("Frame")
 versionBadge.Size = UDim2.new(0, 52, 0, 20)
 versionBadge.Position = UDim2.new(1, -65, 0, 15)
@@ -162,7 +190,7 @@ versionText.TextSize = 12
 versionText.TextColor3 = Color3.fromRGB(255, 40, 40)
 versionText.Parent = versionBadge
 
--- ===================== FANER (TABS SYSTEM) =====================
+-- ===================== FANER =====================
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, 0, 0, 35)
 tabBar.Position = UDim2.new(0, 0, 0, 55)
@@ -171,53 +199,66 @@ tabBar.BorderSizePixel = 0
 tabBar.Parent = mainFrame
 
 local mainTabBtn = Instance.new("TextButton")
-mainTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
+mainTabBtn.Size = UDim2.new(0.2, 0, 1, 0)
 mainTabBtn.Position = UDim2.new(0, 0, 0, 0)
 mainTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-mainTabBtn.Text = "Hovedmeny"
+mainTabBtn.Text = "Hoved"
 mainTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 mainTabBtn.Font = Enum.Font.GothamBold
-mainTabBtn.TextSize = 12
+mainTabBtn.TextSize = 11
 mainTabBtn.BorderSizePixel = 0
 mainTabBtn.AutoButtonColor = false
 mainTabBtn.Parent = tabBar
 
 local toolsTabBtn = Instance.new("TextButton")
-toolsTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
-toolsTabBtn.Position = UDim2.new(0.25, 0, 0, 0)
+toolsTabBtn.Size = UDim2.new(0.2, 0, 1, 0)
+toolsTabBtn.Position = UDim2.new(0.2, 0, 0, 0)
 toolsTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 toolsTabBtn.Text = "Verktøy"
 toolsTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 toolsTabBtn.Font = Enum.Font.GothamBold
-toolsTabBtn.TextSize = 12
+toolsTabBtn.TextSize = 11
 toolsTabBtn.BorderSizePixel = 0
 toolsTabBtn.AutoButtonColor = false
 toolsTabBtn.Parent = tabBar
 
 local espTabBtn = Instance.new("TextButton")
-espTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
-espTabBtn.Position = UDim2.new(0.5, 0, 0, 0)
+espTabBtn.Size = UDim2.new(0.2, 0, 1, 0)
+espTabBtn.Position = UDim2.new(0.4, 0, 0, 0)
 espTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-espTabBtn.Text = "ESP Seksjon"
+espTabBtn.Text = "ESP"
 espTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 espTabBtn.Font = Enum.Font.GothamBold
-espTabBtn.TextSize = 12
+espTabBtn.TextSize = 11
 espTabBtn.BorderSizePixel = 0
 espTabBtn.AutoButtonColor = false
 espTabBtn.Parent = tabBar
 
+local aimbotTabBtn = Instance.new("TextButton")
+aimbotTabBtn.Size = UDim2.new(0.2, 0, 1, 0)
+aimbotTabBtn.Position = UDim2.new(0.6, 0, 0, 0)
+aimbotTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+aimbotTabBtn.Text = "Aimbot"
+aimbotTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+aimbotTabBtn.Font = Enum.Font.GothamBold
+aimbotTabBtn.TextSize = 11
+aimbotTabBtn.BorderSizePixel = 0
+aimbotTabBtn.AutoButtonColor = false
+aimbotTabBtn.Parent = tabBar
+
 local creditsTabBtn = Instance.new("TextButton")
-creditsTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
-creditsTabBtn.Position = UDim2.new(0.75, 0, 0, 0)
+creditsTabBtn.Size = UDim2.new(0.2, 0, 1, 0)
+creditsTabBtn.Position = UDim2.new(0.8, 0, 0, 0)
 creditsTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 creditsTabBtn.Text = "Credits"
 creditsTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
 creditsTabBtn.Font = Enum.Font.GothamBold
-creditsTabBtn.TextSize = 12
+creditsTabBtn.TextSize = 11
 creditsTabBtn.BorderSizePixel = 0
 creditsTabBtn.AutoButtonColor = false
 creditsTabBtn.Parent = tabBar
 
+-- Tab rammer
 local mainTabFrame = Instance.new("Frame")
 mainTabFrame.Size = UDim2.new(1, 0, 1, -90)
 mainTabFrame.Position = UDim2.new(0, 0, 0, 90)
@@ -242,6 +283,13 @@ espTabFrame.CanvasSize = UDim2.new(0, 0, 0, 480)
 espTabFrame.Visible = false
 espTabFrame.Parent = mainFrame
 
+local aimbotTabFrame = Instance.new("Frame")
+aimbotTabFrame.Size = UDim2.new(1, 0, 1, -90)
+aimbotTabFrame.Position = UDim2.new(0, 0, 0, 90)
+aimbotTabFrame.BackgroundTransparency = 1
+aimbotTabFrame.Visible = false
+aimbotTabFrame.Parent = mainFrame
+
 local creditsTabFrame = Instance.new("Frame")
 creditsTabFrame.Size = UDim2.new(1, 0, 1, -90)
 creditsTabFrame.Position = UDim2.new(0, 0, 0, 90)
@@ -253,11 +301,13 @@ local function switchTab(activeBtn, activeFrame)
     mainTabFrame.Visible = false
     toolsTabFrame.Visible = false
     espTabFrame.Visible = false
+    aimbotTabFrame.Visible = false
     creditsTabFrame.Visible = false
     
     TweenService:Create(mainTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     TweenService:Create(toolsTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     TweenService:Create(espTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+    TweenService:Create(aimbotTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     TweenService:Create(creditsTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
  
     activeFrame.Visible = true
@@ -267,6 +317,7 @@ end
 mainTabBtn.MouseButton1Click:Connect(function() switchTab(mainTabBtn, mainTabFrame) end)
 toolsTabBtn.MouseButton1Click:Connect(function() switchTab(toolsTabBtn, toolsTabFrame) end)
 espTabBtn.MouseButton1Click:Connect(function() switchTab(espTabBtn, espTabFrame) end)
+aimbotTabBtn.MouseButton1Click:Connect(function() switchTab(aimbotTabBtn, aimbotTabFrame) end)
 creditsTabBtn.MouseButton1Click:Connect(function() switchTab(creditsTabBtn, creditsTabFrame) end)
 
 -- ===================== CREDITS INNHOLD =====================
@@ -420,7 +471,6 @@ local infJumpBtn = createButton(mainTabFrame, 155, 60, 130, "Inf Jump: AV", func
     end
 end)
 
--- Flyttet sliders opp for å fylle plassen
 createSlider(mainTabFrame, 105, "Fly-fart", 10, 1000, flySpeed, function(v) flySpeed = v end)
 createSlider(mainTabFrame, 160, "Løpefart", 0, 500, currentWalkSpeed, function(v) currentWalkSpeed = v local h = getHumanoid() if h then h.WalkSpeed = v end end)
 createSlider(mainTabFrame, 215, "Hoppekraft", 0, 500, currentJumpPower, function(v) currentJumpPower = v local h = getHumanoid() if h then h.UseJumpPower = true h.JumpPower = v end end)
@@ -437,10 +487,8 @@ end)
 
 local fullbrightBtn = createButton(toolsTabFrame, 15, 60, 270, "Lys (Fullbright): AV", function(btn)
     fullbrightEnabled = not fullbrightEnabled
- 
     if fullbrightEnabled then
         btn.Text = "Lys (Fullbright): PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 200, 50)}):Play() 
-        
         originalLighting.Ambient = Lighting.Ambient
         originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
         originalLighting.GlobalShadows = Lighting.GlobalShadows
@@ -455,10 +503,7 @@ local fullbrightBtn = createButton(toolsTabFrame, 15, 60, 270, "Lys (Fullbright)
     else
         btn.Text = "Lys (Fullbright): AV";
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        if fullbrightConnection then
-            fullbrightConnection:Disconnect()
-            fullbrightConnection = nil
-        end
+        if fullbrightConnection then fullbrightConnection:Disconnect() fullbrightConnection = nil end
         if originalLighting.Ambient then
             Lighting.Ambient = originalLighting.Ambient
             Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
@@ -476,7 +521,6 @@ local hitboxBtn = createButton(toolsTabFrame, 15, 105, 270, "Utvid Hitbox (Chest
     else
         btn.Text = "Utvid Hitbox (Chest): AV"
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = p.Character.HumanoidRootPart
@@ -487,9 +531,46 @@ local hitboxBtn = createButton(toolsTabFrame, 15, 105, 270, "Utvid Hitbox (Chest
     end
 end)
 
-createSlider(toolsTabFrame, 155, "Hitbox Størrelse", 2, 50, hitboxSize, function(v) 
-    hitboxSize = v 
+createSlider(toolsTabFrame, 155, "Hitbox Størrelse", 2, 50, hitboxSize, function(v) hitboxSize = v end)
+
+-- ===================== FANEN: AIMBOT SEKSJON INNHOLD =====================
+local aimbotBtn = createButton(aimbotTabFrame, 15, 15, 130, "Aimbot: AV", function(btn)
+    aimbotEnabled = not aimbotEnabled
+    if aimbotEnabled then
+        btn.Text = "Aimbot: PÅ"
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 100, 0)}):Play()
+    else
+        btn.Text = "Aimbot: AV"
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+    end
 end)
+
+local lockBtn = createButton(aimbotTabFrame, 155, 15, 130, "Insta Lock: AV", function(btn)
+    aimbotInstaLock = not aimbotInstaLock
+    if aimbotInstaLock then
+        btn.Text = "Insta Lock: PÅ"
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)}):Play()
+    else
+        btn.Text = "Insta Lock: AV"
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+    end
+end)
+
+createSlider(aimbotTabFrame, 60, "Aimbot Smoothness", 1, 30, aimbotSmoothness, function(v) aimbotSmoothness = v end)
+
+local fovBtn = createButton(aimbotTabFrame, 15, 115, 270, "Vis FOV Sirkel: AV", function(btn)
+    fovCircleEnabled = not fovCircleEnabled
+    if fovCircleEnabled then
+        btn.Text = "Vis FOV Sirkel: PÅ"
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+    else
+        btn.Text = "Vis FOV Sirkel: AV"
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+        if fovCircle then fovCircle.Visible = false end
+    end
+end)
+
+createSlider(aimbotTabFrame, 160, "FOV Størrelse (Radius)", 20, 400, fovCircleRadius, function(v) fovCircleRadius = v end)
 
 -- ===================== FANEN: ESP MOTOR LOGIKK =====================
 local function updateESP(char)
@@ -578,7 +659,6 @@ local function updateESP(char)
                     end
                 end
                 adjustBar()
-          
                 local conn = hum.HealthChanged:Connect(adjustBar)
                 healthBbg.Destroying:Connect(function() conn:Disconnect() end)
             else
@@ -602,40 +682,31 @@ local function refreshAllESP()
 end
 
 -- ESP Seksjonsknapper
-local mainEspBtn = createButton(espTabFrame, 15, 20, 270, "Bokser (Highlight): AV", function(btn)
+createButton(espTabFrame, 15, 20, 270, "Bokser (Highlight): AV", function(btn)
     espEnabled = not espEnabled
-    if espEnabled then btn.Text = "Bokser (Highlight): PÅ";
-    TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else btn.Text = "Bokser (Highlight): AV";
-    TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+    if espEnabled then btn.Text = "Bokser (Highlight): PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
+    else btn.Text = "Bokser (Highlight): AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
     refreshAllESP()
 end)
 
-local namesEspBtn = createButton(espTabFrame, 15, 70, 270, "Navneskilt (NameTags): AV", function(btn)
+createButton(espTabFrame, 15, 70, 270, "Navneskilt (NameTags): AV", function(btn)
     espNamesEnabled = not espNamesEnabled
-    if espNamesEnabled then btn.Text = "Navneskilt (NameTags): PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else btn.Text = "Navneskilt (NameTags): AV"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+    if espNamesEnabled then btn.Text = "Navneskilt (NameTags): PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
+    else btn.Text = "Navneskilt (NameTags): AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
     refreshAllESP()
 end)
 
-local healthEspBtn = createButton(espTabFrame, 15, 120, 270, "Livlinje (HealthBar): AV", function(btn)
+createButton(espTabFrame, 15, 120, 270, "Livlinje (HealthBar): AV", function(btn)
     espHealthEnabled = not espHealthEnabled
-    if espHealthEnabled then btn.Text = "Livlinje (HealthBar): PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else btn.Text = "Livlinje (HealthBar): AV";
-    TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+    if espHealthEnabled then btn.Text = "Livlinje (HealthBar): PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
+    else btn.Text = "Livlinje (HealthBar): AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
     refreshAllESP()
 end)
 
--- TRACER MENY MED POPUP
 local linesEspBtn = createButton(espTabFrame, 15, 170, 225, "Linjer (Tracers): AV", function(btn)
     espLinesEnabled = not espLinesEnabled
-    if espLinesEnabled then 
-        btn.Text = "Linjer (Tracers): PÅ"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else 
-        btn.Text = "Linjer (Tracers): AV"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() 
-    end
+    if espLinesEnabled then btn.Text = "Linjer (Tracers): PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
+    else btn.Text = "Linjer (Tracers): AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
 end)
 
 local tracerPopupFrame = Instance.new("Frame")
@@ -646,22 +717,17 @@ tracerPopupFrame.BorderSizePixel = 0
 tracerPopupFrame.ZIndex = 10
 tracerPopupFrame.Visible = false
 tracerPopupFrame.Parent = espTabFrame
-Instance.new("UICorner", tracerPopupFrame).CornerRadius = UDim.new(0, 8)
 local popupStroke = Instance.new("UIStroke")
 popupStroke.Color = Color3.fromRGB(80, 80, 100)
 popupStroke.Thickness = 1.5
 popupStroke.Parent = tracerPopupFrame
+Instance.new("UICorner", tracerPopupFrame).CornerRadius = UDim.new(0, 8)
 
 local tracerPopupVisible = false
 local tracerArrowBtn = createButton(espTabFrame, 245, 170, 40, "▼", function(btn)
     tracerPopupVisible = not tracerPopupVisible
-    if tracerPopupVisible then
-        btn.Text = "▲"
-        tracerPopupFrame.Visible = true
-    else
-        btn.Text = "▼"
-        tracerPopupFrame.Visible = false
-    end
+    if tracerPopupVisible then btn.Text = "▲" tracerPopupFrame.Visible = true
+    else btn.Text = "▼" tracerPopupFrame.Visible = false end
 end)
 
 local function setTracerMode(mode)
@@ -674,47 +740,46 @@ end
 local modeBunnBtn = createButton(tracerPopupFrame, 5, 5, 100, "Bunn", function() setTracerMode(1) end)
 local modeToppBtn = createButton(tracerPopupFrame, 5, 40, 100, "Topp", function() setTracerMode(2) end)
 local modeAvatarBtn = createButton(tracerPopupFrame, 5, 75, 100, "Avatar", function() setTracerMode(3) end)
+modeBunnBtn.ZIndex = 11 modeToppBtn.ZIndex = 11 modeAvatarBtn.ZIndex = 11
 
-modeBunnBtn.ZIndex = 11
-modeToppBtn.ZIndex = 11
-modeAvatarBtn.ZIndex = 11
-
--- ===================== FARGE SYSTEM (RGB & REGNBUE) =====================
 local espRainbowBtn = createButton(espTabFrame, 15, 220, 270, "Regnbue ESP: AV", function(btn)
     rainbowEspEnabled = not rainbowEspEnabled
-    if rainbowEspEnabled then
-        btn.Text = "Regnbue ESP: PÅ"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 200)}):Play()
-    else
-        btn.Text = "Regnbue ESP: AV"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        espColor = Color3.fromRGB(espColorR, espColorG, espColorB)
+    if rainbowEspEnabled then btn.Text = "Regnbue ESP: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 200)}):Play()
+    else btn.Text = "Regnbue ESP: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
+end)
+
+createSlider(espTabFrame, 270, "ESP Rød (R)", 0, 255, espColorR, function(v) espColorR = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
+createSlider(espTabFrame, 325, "ESP Grønn (G)", 0, 255, espColorG, function(v) espColorG = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
+createSlider(espTabFrame, 380, "ESP Blå (B)", 0, 255, espColorB, function(v) espColorB = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
+
+-- ===================== AIMBOT SØKE-FUNKSJON =====================
+local function getClosestPlayerToMouse()
+    local targetPlayer = nil
+    local shortestDistance = fovCircleEnabled and fovCircleRadius or math.huge
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local pos, onScreen = camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local mouseLocation = UserInputService:GetMouseLocation()
+                local distance = (Vector2.new(pos.X, pos.Y) - mouseLocation).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    targetPlayer = p
+                end
+            end
+        end
     end
-end)
+    return targetPlayer
+end
 
-createSlider(espTabFrame, 270, "ESP Rød (R)", 0, 255, espColorR, function(v) 
-    espColorR = v 
-    if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
-end)
-createSlider(espTabFrame, 325, "ESP Grønn (G)", 0, 255, espColorG, function(v) 
-    espColorG = v 
-    if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
-end)
-createSlider(espTabFrame, 380, "ESP Blå (B)", 0, 255, espColorB, function(v) 
-    espColorB = v 
-    if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
-end)
-
--- ===================== FARGE & PULS ANIMASJONER + ESP LIVE OPPDATERING =====================
+-- ===================== KJERNE-LOOP (Hovedlogikk) =====================
 RunService.RenderStepped:Connect(function()
     local tid = os.clock()
-    
-    -- Tittelfarge (Regnbue)
     local rainbowColor = Color3.fromHSV((tid % 4) / 4, 0.8, 1)
     titleLabel.TextColor3 = rainbowColor
     mikaelLabel.TextColor3 = rainbowColor
 
-    -- Slider-farger (Pustende Grønn)
     local greenHue = 0.33 + math.sin(tid * 2) * 0.08
     local sliderColor = Color3.fromHSV(greenHue, 0.85, 1)
     local textColor = Color3.fromHSV(greenHue, 0.4, 1) 
@@ -723,47 +788,43 @@ RunService.RenderStepped:Connect(function()
         items.label.TextColor3 = textColor
     end
     
-    -- VERSJONSMERKE (Aggressiv Rød Pulsering)
     local redPulse = 0.5 + math.sin(tid * 4) * 0.5 
     local aggressiveRed = Color3.fromRGB(150 + (105 * redPulse), 20, 20)
     badgeStroke.Color = aggressiveRed
     versionText.TextColor3 = aggressiveRed
 
-    -- Regnbue ESP Logikk og Live-Oppdatering av ESP Farger
-    if rainbowEspEnabled then
-        espColor = Color3.fromHSV((tid % 3) / 3, 1, 1)
+    if rainbowEspEnabled then espColor = Color3.fromHSV((tid % 3) / 3, 1, 1) end
+
+    -- Trygg oppdatering av FOV sirkel (Hindrer krasj hvis executoren har ødelagt drawing API)
+    if fovCircle then
+        pcall(function()
+            fovCircle.Visible = fovCircleEnabled
+            if fovCircleEnabled then
+                fovCircle.Position = UserInputService:GetMouseLocation()
+                fovCircle.Radius = fovCircleRadius
+                fovCircle.Color = espColor
+            end
+        end)
     end
 
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            local char = p.Character
-            if espEnabled then
-                local highlight = char:FindFirstChild("MikaelESP")
-                if highlight then highlight.FillColor = espColor end
-            end
-            
-            if espNamesEnabled then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local nameBbg = hrp:FindFirstChild("MikaelNameESP")
-                    if nameBbg then
-                        local nameLabel = nameBbg:FindFirstChild("NameLabel")
-                        if nameLabel then nameLabel.TextColor3 = espColor end
-                    end
+    -- AIMBOT LOGIKK
+    if aimbotEnabled then
+        local target = getClosestPlayerToMouse()
+        if target and target.Character then
+            local aimPart = target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("HumanoidRootPart")
+            if aimPart then
+                if aimbotInstaLock then
+                    camera.CFrame = CFrame.lookAt(camera.CFrame.Position, aimPart.Position)
+                else
+                    local targetCFrame = CFrame.lookAt(camera.CFrame.Position, aimPart.Position)
+                    local smoothSpeed = math.clamp(1 / aimbotSmoothness, 0, 1)
+                    camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothSpeed)
                 end
             end
         end
-        
-        -- Live oppdatering av Tracer farge
-        if espLinesEnabled then
-            local tracer = tracerFrames[p.UserId]
-            if tracer then tracer.BackgroundColor3 = espColor end
-        end
     end
-end)
 
--- ===================== HOVED LOOP (Fly, Tracers, Hitbox) =====================
-RunService.RenderStepped:Connect(function()
+    -- HITBOX EXPANDER LOGIKK
     if hitboxEnabled then
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -777,6 +838,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
+    -- FLY LOGIKK
     if flying and bodyVelocity and bodyGyro then
         local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -790,59 +852,72 @@ RunService.RenderStepped:Connect(function()
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
             if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
             bodyVelocity.Velocity = moveDir * flySpeed
-            bodyGyro.CFrame = CFrame.new(hrp.Position, hrp.Position + cam.LookVector)
+            bodyGyro.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + cam.LookVector)
         end
     end
 
+    -- TRACERS (LINJER) LIVE OPPDATERING (Ren og trygg Luau-struktur)
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local tracer = tracerFrames[p.UserId]
             local char = p.Character
+            
             if espLinesEnabled and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
                 if not tracer then
                     tracer = Instance.new("Frame")
                     tracer.AnchorPoint = Vector2.new(0.5, 0.5)
-                    tracer.BackgroundColor3 = espColor
                     tracer.BorderSizePixel = 0
                     tracer.Parent = tracerFolder
                     tracerFrames[p.UserId] = tracer
                 end
+                tracer.BackgroundColor3 = espColor
 
-                -- Finner targetens "Chest" (UpperTorso for R15, Torso for R6, faller tilbake på HumanoidRootPart)
                 local targetChest = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
-                local vector, onScreen = camera:WorldToViewportPoint(targetChest.Position)
+                if targetChest then
+                    local vector, onScreen = camera:WorldToViewportPoint(targetChest.Position)
 
-                if onScreen then
-                    tracer.Visible = true
-                    
-                    local p1
-                    if tracerOriginMode == 1 then
-                        p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
-                    elseif tracerOriginMode == 2 then
-                        p1 = Vector2.new(camera.ViewportSize.X / 2, 0)
-                    else
-                        -- Finner din egen "Chest" for Tracer modus = Avatar
-                        local localChest = player.Character and (player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso") or player.Character:FindFirstChild("HumanoidRootPart"))
-                        if localChest then
-                            local chestPos, _ = camera:WorldToViewportPoint(localChest.Position)
-                            p1 = Vector2.new(chestPos.X, chestPos.Y)
+                    if onScreen then
+                        tracer.Visible = true
+                        local p1
+                        if tracerOriginMode == 1 then 
+                            p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+                        elseif tracerOriginMode == 2 then 
+                            p1 = Vector2.new(camera.ViewportSize.X / 2, 0)
                         else
-                            p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y) 
+                            local localChest = player.Character and (player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso") or player.Character:FindFirstChild("HumanoidRootPart"))
+                            if localChest then 
+                                local chestPos = camera:WorldToViewportPoint(localChest.Position) 
+                                p1 = Vector2.new(chestPos.X, chestPos.Y)
+                            else 
+                                p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y) 
+                            end
                         end
+                        local p2 = Vector2.new(vector.X, vector.Y)
+                        local distance = (p1 - p2).Magnitude
+                        local center = (p1 + p2) / 2
+                        tracer.Position = UDim2.new(0, center.X, 0, center.Y)
+                        tracer.Size = UDim2.new(0, distance, 0, 1.5) 
+                        tracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                    else 
+                        tracer.Visible = false 
                     end
-                    
-                    local p2 = Vector2.new(vector.X, vector.Y)
-                    local distance = (p1 - p2).Magnitude
-                    local center = (p1 + p2) / 2
-
-                    tracer.Position = UDim2.new(0, center.X, 0, center.Y)
-                    tracer.Size = UDim2.new(0, distance, 0, 1.5) 
-                    tracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
-                else
-                    tracer.Visible = false
                 end
-            else
-                if tracer then tracer.Visible = false end
+            else 
+                if tracer then 
+                    tracer.Visible = false 
+                end 
+            end
+            
+            -- Fargeoppdatering på ESP bokser/navn
+            if char and espEnabled then 
+                local h = char:FindFirstChild("MikaelESP") 
+                if h then h.FillColor = espColor end 
+            end
+            if char and espNamesEnabled then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local nb = hrp and hrp:FindFirstChild("MikaelNameESP")
+                local lbl = nb and nb:FindFirstChild("NameLabel")
+                if lbl then lbl.TextColor3 = espColor end
             end
         end
     end
@@ -850,12 +925,8 @@ end)
 
 local function hookPlayer(p)
     if p == player then return end
-    if p.Character then 
-        task.spawn(function() updateESP(p.Character) end)
-    end
-    espConnections[p.UserId] = p.CharacterAdded:Connect(function(char)
-        task.wait(0.5) updateESP(char)
-    end)
+    if p.Character then task.spawn(function() updateESP(p.Character) end) end
+    espConnections[p.UserId] = p.CharacterAdded:Connect(function(char) task.wait(0.5) updateESP(char) end)
 end
 
 for _, p in pairs(Players:GetPlayers()) do hookPlayer(p) end
@@ -890,14 +961,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 bodyGyro = Instance.new("BodyGyro", hrp)
                 bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
                 bodyGyro.P = 3000
-                flyBtn.Text = "Fly: PÅ";
+                flyBtn.Text = "Fly: PÅ"
                 TweenService:Create(flyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 60, 60)}):Play()
             end
         else
             if hum then hum.PlatformStand = false end
             if bodyVelocity then bodyVelocity:Destroy() end
             if bodyGyro then bodyGyro:Destroy() end
-            flyBtn.Text = "Fly: AV (F)";
+            flyBtn.Text = "Fly: AV (F)"
             TweenService:Create(flyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
         end
     end
@@ -915,10 +986,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 UserInputService.JumpRequest:Connect(function()
-    if infJumpEnabled then
-        local hum = getHumanoid()
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-    end
+    if infJumpEnabled then local hum = getHumanoid() if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end end
 end)
 
 local draggingMenu, resizingMenu = false, false
@@ -926,8 +994,7 @@ local dragStartPos, startFramePos, startScale
 
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingMenu = true;
-        dragStartPos = input.Position; startFramePos = mainFrame.Position
+        draggingMenu = true; dragStartPos = input.Position; startFramePos = mainFrame.Position
     end
 end)
 
@@ -949,11 +1016,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingMenu = false;
-        resizingMenu = false
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then draggingMenu = false resizingMenu = false end
 end)
 
--- Pop-up start animasjon
 TweenService:Create(uiScale, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
