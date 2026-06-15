@@ -1,5 +1,5 @@
 --[[
-    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.7 - VISUELL OPPDATERING)
+    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.8 - VISUELL OPPDATERING)
     Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP (Bokser, Navn, HP, Tracers), Aimbot & UI Effects!
 ]]
@@ -17,7 +17,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
 -- ===================== INNSTILLINGER =====================
-local menuVersion = "v2.0.7"
+local menuVersion = "v2.0.8"
 local flySpeed = 50
 local currentWalkSpeed = 16
 local currentJumpPower = 50
