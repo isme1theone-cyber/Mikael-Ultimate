@@ -1,5 +1,5 @@
 --[[
-    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.3 - ESP OVERHAUL)
+    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.4 - STABILITETSOPPDATERING)
     Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP (Bokser, Navn, HP, Tracers) & Aimbot!
 ]]
@@ -17,7 +17,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
 -- ===================== INNSTILLINGER =====================
-local menuVersion = "v2.0.3"
+local menuVersion = "v2.0.4"
 local flySpeed = 50
 local currentWalkSpeed = 16
 local currentJumpPower = 50
@@ -95,8 +95,9 @@ end
 -- ===================== SIKKERHET FOR RE-EXECUTION =====================
 local guiName = "MikaelUltimateMenu"
 pcall(function()
-    if gethui and gethui():FindFirstChild(guiName) then
-        gethui():FindFirstChild(guiName):Destroy()
+    local successParent, resultParent = pcall(function() return gethui() end)
+    if successParent and resultParent and resultParent:FindFirstChild(guiName) then
+        resultParent:FindFirstChild(guiName):Destroy()
     elseif CoreGui:FindFirstChild(guiName) then
         CoreGui:FindFirstChild(guiName):Destroy()
     elseif player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild(guiName) then
@@ -110,10 +111,14 @@ screenGui.Name = guiName
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true -- VIKTIG: Fikser tracers og ESP posisjonering!
 
-local successParent, _ = pcall(function()
-    if gethui then screenGui.Parent = gethui() else screenGui.Parent = CoreGui end
-end)
-if not successParent or not screenGui.Parent then screenGui.Parent = player:WaitForChild("PlayerGui") end
+local successParent, resultParent = pcall(function() return gethui() end)
+if successParent and resultParent then
+    screenGui.Parent = resultParent
+elseif pcall(function() return CoreGui.Name end) then
+    screenGui.Parent = CoreGui
+else
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+end
 
 local tracerFolder = Instance.new("Folder")
 tracerFolder.Name = "TracerFolder"
@@ -767,18 +772,20 @@ end
 local function loadConfig()
     if not readfile then return false end
     local success, result = pcall(function() return readfile("MikaelConfig.json") end)
-    if success and result then
-        local data = HttpService:JSONDecode(result)
-        if data.flySpeed then setFlySpeedSlider(data.flySpeed) end
-        if data.currentWalkSpeed then setWalkSpeedSlider(data.currentWalkSpeed) end
-        if data.currentJumpPower then setJumpPowerSlider(data.currentJumpPower) end
-        if data.hitboxSize then setHitboxSlider(data.hitboxSize) end
-        if data.aimbotSmoothness then setAimbotSmoothSlider(data.aimbotSmoothness) end
-        if data.fovCircleRadius then setFovSlider(data.fovCircleRadius) end
-        if data.espColorR then setEspRSlider(data.espColorR) end
-        if data.espColorG then setEspGSlider(data.espColorG) end
-        if data.espColorB then setEspBSlider(data.espColorB) end
-        return true
+    if success and result and result ~= "" then
+        local decodeSuccess, data = pcall(function() return HttpService:JSONDecode(result) end)
+        if decodeSuccess and data then
+            if data.flySpeed then setFlySpeedSlider(data.flySpeed) end
+            if data.currentWalkSpeed then setWalkSpeedSlider(data.currentWalkSpeed) end
+            if data.currentJumpPower then setJumpPowerSlider(data.currentJumpPower) end
+            if data.hitboxSize then setHitboxSlider(data.hitboxSize) end
+            if data.aimbotSmoothness then setAimbotSmoothSlider(data.aimbotSmoothness) end
+            if data.fovCircleRadius then setFovSlider(data.fovCircleRadius) end
+            if data.espColorR then setEspRSlider(data.espColorR) end
+            if data.espColorG then setEspGSlider(data.espColorG) end
+            if data.espColorB then setEspBSlider(data.espColorB) end
+            return true
+        end
     end
     return false
 end
@@ -820,10 +827,31 @@ end
 local function isVisible(targetPart, character)
     if not wallCheckEnabled then return true end
     local castPoints = {camera.CFrame.Position, targetPart.Position}
-    local ignoreList = {player.Character, character}
+    local ignoreList = {character}
+    if player.Character then
+        table.insert(ignoreList, player.Character)
+    end
     local parts = camera:GetPartsObscuringTarget(castPoints, ignoreList)
     return #parts == 0
 end
+
+-- NPC Cache System: Søker etter NPC-er i bakgrunnen hvert 3. sekund istedenfor hver frame
+local cachedNPCs = {}
+task.spawn(function()
+    while task.wait(3) do
+        if npcAimbotEnabled then
+            local tempCache = {}
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj ~= player.Character and not Players:GetPlayerFromCharacter(obj) then
+                    if obj:FindFirstChildOfClass("Humanoid") then
+                        table.insert(tempCache, obj)
+                    end
+                end
+            end
+            cachedNPCs = tempCache
+        end
+    end
+end)
 
 local function getClosestTargetToMouse()
     local targetObj = nil
@@ -857,12 +885,8 @@ local function getClosestTargetToMouse()
     end
 
     if npcAimbotEnabled then
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj ~= player.Character and not Players:GetPlayerFromCharacter(obj) then
-                if obj:FindFirstChildOfClass("Humanoid") then
-                    sjekkKarakter(obj)
-                end
-            end
+        for _, obj in ipairs(cachedNPCs) do
+            sjekkKarakter(obj)
         end
     end
 
