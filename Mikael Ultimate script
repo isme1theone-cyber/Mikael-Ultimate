@@ -1,7 +1,7 @@
 --[[
-    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.4 - STABILITETSOPPDATERING)
+    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.7 - VISUELL OPPDATERING)
     Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
-    Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP (Bokser, Navn, HP, Tracers) & Aimbot!
+    Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP (Bokser, Navn, HP, Tracers), Aimbot & UI Effects!
 ]]
 
 local Players = game:GetService("Players")
@@ -17,7 +17,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
 -- ===================== INNSTILLINGER =====================
-local menuVersion = "v2.0.4"
+local menuVersion = "v2.0.7"
 local flySpeed = 50
 local currentWalkSpeed = 16
 local currentJumpPower = 50
@@ -37,10 +37,9 @@ local aimbotSmoothness = 5
 local aimbotInstaLock = false
 local fovCircleEnabled = false
 local fovCircleRadius = 100
-
--- Nye Aimbot Innstillinger
 local wallCheckEnabled = false
 local npcAimbotEnabled = false
+local aimbotTeamCheckEnabled = false 
 local targetParts = {"Hodet", "Kroppen", "Bena"}
 local targetPartIndex = 1
 
@@ -49,6 +48,7 @@ local espEnabled = false
 local espNamesEnabled = false
 local espHealthEnabled = false
 local espLinesEnabled = false
+local espTeamCheckEnabled = false 
 local tracerOriginMode = 1 -- 1: Bunn, 2: Topp, 3: Avatar
 
 -- ESP Farge Innstillinger
@@ -58,6 +58,12 @@ local espColorG = 255
 local espColorB = 120
 local espColor = Color3.fromRGB(0, 255, 120)
 
+-- NYE: Visuelle Meny Innstillinger
+local menuTransparency = 0
+local rainbowMenuBorder = false
+local blurEnabled = false
+local menuBlurEffect = nil
+
 local bodyVelocity, bodyGyro
 local noclipConnection
 local fullbrightConnection
@@ -66,11 +72,11 @@ local espConnections = {}
 local tracerFrames = {}
 local animatedSliders = {}
 
--- Config Referanser
+-- Config Referanser (Forward declarations)
 local setFlySpeedSlider, setWalkSpeedSlider, setJumpPowerSlider, setHitboxSlider
 local setAimbotSmoothSlider, setFovSlider, setEspRSlider, setEspGSlider, setEspBSlider
-
-local flyBtn -- Deklareres for F-tast hook
+local setMenuTransparencySlider, setRainbowBorder, setBlurEffect
+local flyBtn 
 
 -- Trygg opprettelse av FOV-sirkel
 local fovCircle = nil
@@ -109,7 +115,7 @@ end)
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = guiName
 screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true -- VIKTIG: Fikser tracers og ESP posisjonering!
+screenGui.IgnoreGuiInset = true 
 
 local successParent, resultParent = pcall(function() return gethui() end)
 if successParent and resultParent then
@@ -130,7 +136,7 @@ mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24) 
 mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = false -- Satt til false så menyen kan tegnes utenfor rammen
+mainFrame.ClipsDescendants = false 
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
 
@@ -216,7 +222,7 @@ tabBar.Size = UDim2.new(1, 0, 0, 35)
 tabBar.Position = UDim2.new(0, 0, 0, 55)
 tabBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 tabBar.BorderSizePixel = 0
-tabBar.CanvasSize = UDim2.new(0, 480, 0, 0)
+tabBar.CanvasSize = UDim2.new(0, 560, 0, 0) 
 tabBar.ScrollBarThickness = 2
 tabBar.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
 tabBar.ScrollingDirection = Enum.ScrollingDirection.X
@@ -243,6 +249,7 @@ local espTabBtn = createTabBtn(160, "ESP", false)
 local aimbotTabBtn = createTabBtn(240, "Aimbot", false)
 local configTabBtn = createTabBtn(320, "Config", false)
 local creditsTabBtn = createTabBtn(400, "Credits", false)
+local settingsTabBtn = createTabBtn(480, "Settings", false)
 
 local function createTabFrame(visible)
     local frame = Instance.new("ScrollingFrame")
@@ -251,7 +258,7 @@ local function createTabFrame(visible)
     frame.BackgroundTransparency = 1
     frame.BorderSizePixel = 0
     frame.ScrollBarThickness = 4
-    frame.CanvasSize = UDim2.new(0, 0, 0, 480)
+    frame.CanvasSize = UDim2.new(0, 0, 0, 550) 
     frame.Visible = visible
     frame.Parent = mainFrame
     return frame
@@ -263,6 +270,7 @@ local espTabFrame = createTabFrame(false)
 local aimbotTabFrame = createTabFrame(false)
 local configTabFrame = createTabFrame(false)
 local creditsTabFrame = createTabFrame(false)
+local settingsTabFrame = createTabFrame(false)
 
 local function switchTab(activeBtn, activeFrame)
     mainTabFrame.Visible = false
@@ -271,8 +279,9 @@ local function switchTab(activeBtn, activeFrame)
     aimbotTabFrame.Visible = false
     configTabFrame.Visible = false
     creditsTabFrame.Visible = false
+    settingsTabFrame.Visible = false
     
-    for _, btn in ipairs({mainTabBtn, toolsTabBtn, espTabBtn, aimbotTabBtn, configTabBtn, creditsTabBtn}) do
+    for _, btn in ipairs({mainTabBtn, toolsTabBtn, espTabBtn, aimbotTabBtn, configTabBtn, creditsTabBtn, settingsTabBtn}) do
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     end
 
@@ -286,6 +295,7 @@ espTabBtn.MouseButton1Click:Connect(function() switchTab(espTabBtn, espTabFrame)
 aimbotTabBtn.MouseButton1Click:Connect(function() switchTab(aimbotTabBtn, aimbotTabFrame) end)
 configTabBtn.MouseButton1Click:Connect(function() switchTab(configTabBtn, configTabFrame) end)
 creditsTabBtn.MouseButton1Click:Connect(function() switchTab(creditsTabBtn, creditsTabFrame) end)
+settingsTabBtn.MouseButton1Click:Connect(function() switchTab(settingsTabBtn, settingsTabFrame) end)
 
 -- ===================== CREDITS =====================
 local creditsText = Instance.new("TextLabel")
@@ -312,7 +322,6 @@ local function createButton(parentFrame, xPos, yPos, width, name, onClick)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 13
     btn.AutoButtonColor = false
-  
     btn.Parent = parentFrame
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 
@@ -340,7 +349,6 @@ local function createSlider(parentFrame, yPos, name, minVal, maxVal, defaultVal,
     track.Size = UDim2.new(1, -30, 0, 6)
     track.Position = UDim2.new(0, 15, 0, yPos + 22)
     track.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-  
     track.BorderSizePixel = 0
     track.Parent = parentFrame
     Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
@@ -357,7 +365,6 @@ local function createSlider(parentFrame, yPos, name, minVal, maxVal, defaultVal,
     knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     knob.Text = ""
     knob.Parent = track
- 
     Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
     table.insert(animatedSliders, {fill = fill, label = label})
@@ -393,14 +400,12 @@ local function toggleFlyMode()
     if flying then
         if hrp and hum then
             hum.PlatformStand = true
-    
             bodyVelocity = Instance.new("BodyVelocity", hrp)
             bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
             bodyGyro = Instance.new("BodyGyro", hrp)
             bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
             bodyGyro.P = 3000
             if flyBtn then
-              
                 flyBtn.Text = "Fly: PÅ"
                 TweenService:Create(flyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 60, 60)}):Play()
             end
@@ -450,10 +455,8 @@ setJumpPowerSlider = createSlider(mainTabFrame, 215, "Hoppekraft", 0, 500, curre
 -- ===================== VERKTØY INNHOLD =====================
 createButton(toolsTabFrame, 15, 15, 270, "Teleport med Mus: AV", function(btn)
     clickTpEnabled = not clickTpEnabled
-    if clickTpEnabled then btn.Text = "Teleport med Mus: PÅ";
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 200)}):Play()
-    else btn.Text = "Teleport med Mus: AV";
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+    if clickTpEnabled then btn.Text = "Teleport med Mus: PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 200)}):Play()
+    else btn.Text = "Teleport med Mus: AV"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
 end)
 
 createButton(toolsTabFrame, 15, 60, 270, "Lys (Fullbright): AV", function(btn)
@@ -519,15 +522,21 @@ createButton(aimbotTabFrame, 15, 105, 270, "Sikt på: Hodet", function(btn)
     btn.Text = "Sikt på: " .. targetParts[targetPartIndex]
 end)
 
-setAimbotSmoothSlider = createSlider(aimbotTabFrame, 155, "Aimbot Smoothness", 1, 100, aimbotSmoothness, function(v) aimbotSmoothness = v end)
+createButton(aimbotTabFrame, 15, 150, 270, "Aimbot Team Check: AV", function(btn)
+    aimbotTeamCheckEnabled = not aimbotTeamCheckEnabled
+    if aimbotTeamCheckEnabled then btn.Text = "Aimbot Team Check: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+    else btn.Text = "Aimbot Team Check: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+end)
 
-createButton(aimbotTabFrame, 15, 210, 270, "Vis FOV Sirkel: AV", function(btn)
+setAimbotSmoothSlider = createSlider(aimbotTabFrame, 195, "Aimbot Smoothness", 1, 100, aimbotSmoothness, function(v) aimbotSmoothness = v end)
+
+createButton(aimbotTabFrame, 15, 250, 270, "Vis FOV Sirkel: AV", function(btn)
     fovCircleEnabled = not fovCircleEnabled
     if fovCircleEnabled then btn.Text = "Vis FOV Sirkel: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
     else btn.Text = "Vis FOV Sirkel: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() if fovCircle then fovCircle.Visible = false end end
 end)
 
-setFovSlider = createSlider(aimbotTabFrame, 255, "FOV Størrelse (Radius)", 20, 400, fovCircleRadius, function(v) fovCircleRadius = v end)
+setFovSlider = createSlider(aimbotTabFrame, 295, "FOV Størrelse (Radius)", 20, 400, fovCircleRadius, function(v) fovCircleRadius = v end)
 
 -- ===================== ESP MOTOR & OPPDATERINGER =====================
 local function updateESP(char)
@@ -536,12 +545,16 @@ local function updateESP(char)
     
     if pChar == player or not pChar then return end
 
+    local isTeammate = (pChar.Team == player.Team and player.Team ~= nil)
+    local showHighlight = espEnabled and not (espTeamCheckEnabled and isTeammate)
+    local showNames = espNamesEnabled and not (espTeamCheckEnabled and isTeammate)
+    local showHealth = espHealthEnabled and not (espTeamCheckEnabled and isTeammate)
+
     local hrp = char:FindFirstChild("HumanoidRootPart")
     local hum = char:FindFirstChildOfClass("Humanoid")
 
-    -- 1. Bygg eller Fjern Highlight Boks
     local highlight = char:FindFirstChild("MikaelESP")
-    if espEnabled then
+    if showHighlight then
         if not highlight then
             highlight = Instance.new("Highlight")
             highlight.Name = "MikaelESP"
@@ -557,9 +570,8 @@ local function updateESP(char)
     end
 
     if hrp and hum then
-        -- 2. Bygg eller Fjern Navneskilt
         local nameBbg = hrp:FindFirstChild("MikaelNameESP")
-        if espNamesEnabled and hum.Health > 0 then
+        if showNames and hum.Health > 0 then
             if not nameBbg then
                 nameBbg = Instance.new("BillboardGui")
                 nameBbg.Name = "MikaelNameESP"
@@ -585,9 +597,8 @@ local function updateESP(char)
             if nameBbg then nameBbg:Destroy() end
         end
 
-        -- 3. Bygg eller Fjern Livlinje (Healthbar)
         local healthBbg = hrp:FindFirstChild("MikaelHealthESP")
-        if espHealthEnabled and hum.Health > 0 then
+        if showHealth and hum.Health > 0 then
             local extents = char:GetExtentsSize()
             local charHeight = math.max(extents.Y, 4.5)
             local charWidth = math.max(extents.X, 2)
@@ -662,7 +673,6 @@ createButton(espTabFrame, 15, 105, 270, "Livlinje (HealthBar): AV", function(btn
     refreshAllESP()
 end)
 
--- OPPSETT AV TRACERS + MINI MENY
 local tracerBtn = createButton(espTabFrame, 15, 150, 235, "Linjer (Tracers): AV", function(btn)
     espLinesEnabled = not espLinesEnabled
     if espLinesEnabled then btn.Text = "Linjer (Tracers): PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
@@ -680,14 +690,13 @@ tracerArrowBtn.TextSize = 14
 tracerArrowBtn.Parent = espTabFrame
 Instance.new("UICorner", tracerArrowBtn).CornerRadius = UDim.new(0, 8)
 
--- Skjul/Vis funksjon for menyen (ZIndex høyere for å overlappe)
 local tracerMenu = Instance.new("Frame")
 tracerMenu.Size = UDim2.new(0, 100, 0, 105)
 tracerMenu.Position = UDim2.new(0, 290, 0, 150)
 tracerMenu.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 tracerMenu.Visible = false
 tracerMenu.ZIndex = 5
-tracerMenu.Parent = mainFrame -- Plassert i mainFrame for å ikke bli klipt av scrollingen
+tracerMenu.Parent = mainFrame 
 Instance.new("UICorner", tracerMenu).CornerRadius = UDim.new(0, 8)
 
 local modes = {"Bunn", "Topp", "Avatar"}
@@ -722,18 +731,23 @@ tracerArrowBtn.MouseButton1Click:Connect(function()
     tracerArrowBtn.Text = tracerMenu.Visible and "▼" or "▶"
 end)
 
+createButton(espTabFrame, 15, 195, 270, "ESP Team Check: AV", function(btn)
+    espTeamCheckEnabled = not espTeamCheckEnabled
+    if espTeamCheckEnabled then btn.Text = "ESP Team Check: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+    else btn.Text = "ESP Team Check: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+    refreshAllESP()
+end)
 
-createButton(espTabFrame, 15, 195, 270, "Regnbue ESP: AV", function(btn)
+createButton(espTabFrame, 15, 240, 270, "Regnbue ESP: AV", function(btn)
     rainbowEspEnabled = not rainbowEspEnabled
     if rainbowEspEnabled then btn.Text = "Regnbue ESP: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 200)}):Play()
     else btn.Text = "Regnbue ESP: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
 end)
 
-setEspRSlider = createSlider(espTabFrame, 240, "ESP Rød (R)", 0, 255, espColorR, function(v) espColorR = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
-setEspGSlider = createSlider(espTabFrame, 295, "ESP Grønn (G)", 0, 255, espColorG, function(v) espColorG = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
-setEspBSlider = createSlider(espTabFrame, 350, "ESP Blå (B)", 0, 255, espColorB, function(v) espColorB = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
+setEspRSlider = createSlider(espTabFrame, 285, "ESP Rød (R)", 0, 255, espColorR, function(v) espColorR = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
+setEspGSlider = createSlider(espTabFrame, 340, "ESP Grønn (G)", 0, 255, espColorG, function(v) espColorG = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
+setEspBSlider = createSlider(espTabFrame, 395, "ESP Blå (B)", 0, 255, espColorB, function(v) espColorB = v if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end end)
 
--- ESP Players Hooking
 local function hookPlayer(p)
     if p == player then return end
     if p.Character then task.spawn(function() updateESP(p.Character) end) end
@@ -746,6 +760,67 @@ Players.PlayerRemoving:Connect(function(p)
     if espConnections[p.UserId] then espConnections[p.UserId]:Disconnect() espConnections[p.UserId] = nil end
     if tracerFrames[p.UserId] then tracerFrames[p.UserId]:Destroy() tracerFrames[p.UserId] = nil end
 end)
+
+
+-- ===================== SETTINGS INNHOLD =====================
+local menuKeybind = Enum.KeyCode.RightShift 
+local isChangingKey = false
+local menuOpen = true
+
+local keybindBtn = createButton(settingsTabFrame, 15, 15, 270, "Åpne/Lukk Meny: RightShift", function(btn)
+    btn.Text = "Trykk en tast..."
+    TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 150, 0)}):Play()
+    isChangingKey = true
+end)
+
+setMenuTransparencySlider = createSlider(settingsTabFrame, 60, "Meny Gjennomsiktighet (%)", 0, 90, menuTransparency, function(v)
+    menuTransparency = v
+    local t = v / 100
+    mainFrame.BackgroundTransparency = t
+    titleBar.BackgroundTransparency = t
+    titleFiller.BackgroundTransparency = t
+    tabBar.BackgroundTransparency = t
+end)
+
+local rainbowBtn
+setRainbowBorder = function(state)
+    rainbowMenuBorder = state
+    if rainbowBtn then
+        if rainbowMenuBorder then 
+            rainbowBtn.Text = "Regnbue Meny-Ramme: PÅ" 
+            TweenService:Create(rainbowBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 200)}):Play()
+        else 
+            rainbowBtn.Text = "Regnbue Meny-Ramme: AV" 
+            TweenService:Create(rainbowBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() 
+            uiStroke.Color = Color3.fromRGB(80, 80, 100)
+        end
+    end
+end
+rainbowBtn = createButton(settingsTabFrame, 15, 110, 270, "Regnbue Meny-Ramme: AV", function() setRainbowBorder(not rainbowMenuBorder) end)
+
+local blurBtn
+setBlurEffect = function(state)
+    blurEnabled = state
+    if not menuBlurEffect then
+        menuBlurEffect = Instance.new("BlurEffect")
+        menuBlurEffect.Size = 0
+        menuBlurEffect.Parent = Lighting
+    end
+    
+    if blurBtn then
+        if blurEnabled then
+            blurBtn.Text = "Uskarp Bakgrunn (Blur): PÅ"
+            TweenService:Create(blurBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+            TweenService:Create(menuBlurEffect, TweenInfo.new(0.3), {Size = 20}):Play()
+        else
+            blurBtn.Text = "Uskarp Bakgrunn (Blur): AV"
+            TweenService:Create(blurBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+            TweenService:Create(menuBlurEffect, TweenInfo.new(0.3), {Size = 0}):Play()
+        end
+    end
+end
+blurBtn = createButton(settingsTabFrame, 15, 155, 270, "Uskarp Bakgrunn (Blur): AV", function() setBlurEffect(not blurEnabled) end)
+
 
 -- ===================== CONFIG SYSTEM =====================
 local configLabel = Instance.new("TextLabel")
@@ -763,7 +838,9 @@ local function saveConfig()
     if not writefile then return false end
     local configData = {
         flySpeed = flySpeed, currentWalkSpeed = currentWalkSpeed, currentJumpPower = currentJumpPower, hitboxSize = hitboxSize,
-        aimbotSmoothness = aimbotSmoothness, fovCircleRadius = fovCircleRadius, espColorR = espColorR, espColorG = espColorG, espColorB = espColorB
+        aimbotSmoothness = aimbotSmoothness, fovCircleRadius = fovCircleRadius, espColorR = espColorR, espColorG = espColorG, espColorB = espColorB,
+        -- NYE TING SOM LAGRES
+        menuTransparency = menuTransparency, rainbowMenuBorder = rainbowMenuBorder, blurEnabled = blurEnabled
     }
     local success = pcall(function() writefile("MikaelConfig.json", HttpService:JSONEncode(configData)) end)
     return success
@@ -784,19 +861,25 @@ local function loadConfig()
             if data.espColorR then setEspRSlider(data.espColorR) end
             if data.espColorG then setEspGSlider(data.espColorG) end
             if data.espColorB then setEspBSlider(data.espColorB) end
+            
+            -- Laster inn de nye visuelle greiene
+            if data.menuTransparency then setMenuTransparencySlider(data.menuTransparency) end
+            if data.rainbowMenuBorder ~= nil then setRainbowBorder(data.rainbowMenuBorder) end
+            if data.blurEnabled ~= nil then setBlurEffect(data.blurEnabled) end
+
             return true
         end
     end
     return false
 end
 
-createButton(configTabFrame, 15, 65, 270, "Lagre Innstillinger (Sliders)", function(btn)
+createButton(configTabFrame, 15, 65, 270, "Lagre Innstillinger", function(btn)
     if saveConfig() then
         btn.Text = "Lagret Vellykket!" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 100)}):Play()
-        task.wait(1.5) btn.Text = "Lagre Innstillinger (Sliders)" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+        task.wait(1.5) btn.Text = "Lagre Innstillinger" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
     else
         btn.Text = "Feilet (Ingen writefile-støtte)" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}):Play()
-        task.wait(2) btn.Text = "Lagre Innstillinger (Sliders)" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+        task.wait(2) btn.Text = "Lagre Innstillinger" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
     end
 end)
 
@@ -835,7 +918,6 @@ local function isVisible(targetPart, character)
     return #parts == 0
 end
 
--- NPC Cache System: Søker etter NPC-er i bakgrunnen hvert 3. sekund istedenfor hver frame
 local cachedNPCs = {}
 task.spawn(function()
     while task.wait(3) do
@@ -860,6 +942,12 @@ local function getClosestTargetToMouse()
 
     local function sjekkKarakter(char)
         if not char then return end
+        
+        local p = Players:GetPlayerFromCharacter(char)
+        if aimbotTeamCheckEnabled and p and p.Team == player.Team and player.Team ~= nil then
+            return
+        end
+
         local hum = char:FindFirstChildOfClass("Humanoid")
         if not hum or hum.Health <= 0 then return end
         
@@ -911,6 +999,11 @@ RunService.RenderStepped:Connect(function()
 
     if rainbowEspEnabled then espColor = Color3.fromHSV((tid % 3) / 3, 1, 1) end
 
+    -- NY: Oppdaterer regnbue-rammen på menyen hvis den er aktivert
+    if rainbowMenuBorder then
+        uiStroke.Color = Color3.fromHSV((tid % 5) / 5, 0.8, 1)
+    end
+
     if fovCircle then pcall(function()
         fovCircle.Visible = fovCircleEnabled
         if fovCircleEnabled then
@@ -961,11 +1054,13 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- Oppdatert Tracers Logikk med Valgfritt Startpunkt
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local char = p.Character
-            if espLinesEnabled and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+            local isTeammate = (p.Team == player.Team and player.Team ~= nil)
+            local showTracers = espLinesEnabled and not (espTeamCheckEnabled and isTeammate)
+
+            if showTracers and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
                 local tracer = tracerFrames[p.UserId]
                 if not tracer then
                     tracer = Instance.new("Frame") 
@@ -974,6 +1069,7 @@ RunService.RenderStepped:Connect(function()
                     tracer.Parent = tracerFolder 
                     tracerFrames[p.UserId] = tracer
                 end
+                
                 tracer.BackgroundColor3 = espColor
                 
                 local targetChest = char:FindFirstChild("HumanoidRootPart")
@@ -981,25 +1077,20 @@ RunService.RenderStepped:Connect(function()
                     local vector, onScreen = camera:WorldToViewportPoint(targetChest.Position)
                     if onScreen then
                         tracer.Visible = true
-                        
-                        -- Setter opp startposisjon basert på menyvalg
                         local p1
                         if tracerOriginMode == 1 then
-                            p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y) -- Bunn
+                            p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                         elseif tracerOriginMode == 2 then
-                            p1 = Vector2.new(camera.ViewportSize.X / 2, 0) -- Topp
+                            p1 = Vector2.new(camera.ViewportSize.X / 2, 0)
                         elseif tracerOriginMode == 3 then
-                            -- Fra Avatar (LocalPlayer)
                             local localHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                             if localHrp then
                                 local lpVector, lpOnScreen = camera:WorldToViewportPoint(localHrp.Position)
                                 p1 = Vector2.new(lpVector.X, lpVector.Y)
-                                -- Sikkerhetsnett: faller tilbake på bunnen om du ikke er på skjermen (ser vekk)
                                 if not lpOnScreen then
                                     p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                                 end
                             else
-                                -- Sikkerhetsnett: faller tilbake på bunnen om du er død
                                 p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                             end
                         end
@@ -1018,8 +1109,11 @@ RunService.RenderStepped:Connect(function()
                 if tracerFrames[p.UserId] then tracerFrames[p.UserId].Visible = false end 
             end
             
-            if char and espEnabled then local h = char:FindFirstChild("MikaelESP") if h then h.FillColor = espColor end end
-            if char and espNamesEnabled then local nb = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("MikaelNameESP") if nb and nb:FindFirstChild("NameLabel") then nb.NameLabel.TextColor3 = espColor end end
+            local showHighlight = espEnabled and not (espTeamCheckEnabled and isTeammate)
+            if char and showHighlight then local h = char:FindFirstChild("MikaelESP") if h then h.FillColor = espColor end end
+            
+            local showNames = espNamesEnabled and not (espTeamCheckEnabled and isTeammate)
+            if char and showNames then local nb = char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("MikaelNameESP") if nb and nb:FindFirstChild("NameLabel") then nb.NameLabel.TextColor3 = espColor end end
         end
     end
 end)
@@ -1037,6 +1131,33 @@ resizeButton.ZIndex = 10
 resizeButton.Parent = mainFrame
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if isChangingKey then
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            menuKeybind = input.KeyCode
+            keybindBtn.Text = "Åpne/Lukk Meny: " .. menuKeybind.Name
+            TweenService:Create(keybindBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
+            isChangingKey = false
+        end
+        return 
+    end
+
+    if not gameProcessed and input.KeyCode == menuKeybind then
+        menuOpen = not menuOpen
+        if menuOpen then
+            mainFrame.Visible = true
+            TweenService:Create(uiScale, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()
+        else
+            local closeTween = TweenService:Create(uiScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0})
+            closeTween:Play()
+            task.spawn(function()
+                closeTween.Completed:Wait()
+                if not menuOpen then
+                    mainFrame.Visible = false
+                end
+            end)
+        end
+    end
+
     if not gameProcessed and input.KeyCode == Enum.KeyCode.F then toggleFlyMode() end
     if not gameProcessed and clickTpEnabled and input.UserInputType == Enum.UserInputType.MouseButton1 then
         if mouse.Hit and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then player.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3.5, 0)) end
