@@ -1,5 +1,5 @@
 --[[
-    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 1.9.7)
+    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 1.9.8)
     Inneholder: Fly, Noclip, Click TP, Sitt, Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER + TØFF VERSJONS-BADGE + TRACER MODUS POPUP + RGB ESP (Chest Tracers).
 ]]
 
@@ -15,7 +15,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
 -- ===================== INNSTILLINGER =====================
-local menuVersion = "v1.9.7"
+local menuVersion = "v1.9.8"
 local flySpeed = 50
 local currentWalkSpeed = 16
 local currentJumpPower = 50
@@ -171,7 +171,7 @@ tabBar.BorderSizePixel = 0
 tabBar.Parent = mainFrame
 
 local mainTabBtn = Instance.new("TextButton")
-mainTabBtn.Size = UDim2.new(0.333, 0, 1, 0)
+mainTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
 mainTabBtn.Position = UDim2.new(0, 0, 0, 0)
 mainTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
 mainTabBtn.Text = "Hovedmeny"
@@ -182,9 +182,21 @@ mainTabBtn.BorderSizePixel = 0
 mainTabBtn.AutoButtonColor = false
 mainTabBtn.Parent = tabBar
 
+local toolsTabBtn = Instance.new("TextButton")
+toolsTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
+toolsTabBtn.Position = UDim2.new(0.25, 0, 0, 0)
+toolsTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+toolsTabBtn.Text = "Verktøy"
+toolsTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+toolsTabBtn.Font = Enum.Font.GothamBold
+toolsTabBtn.TextSize = 12
+toolsTabBtn.BorderSizePixel = 0
+toolsTabBtn.AutoButtonColor = false
+toolsTabBtn.Parent = tabBar
+
 local espTabBtn = Instance.new("TextButton")
-espTabBtn.Size = UDim2.new(0.333, 0, 1, 0)
-espTabBtn.Position = UDim2.new(0.333, 0, 0, 0)
+espTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
+espTabBtn.Position = UDim2.new(0.5, 0, 0, 0)
 espTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 espTabBtn.Text = "ESP Seksjon"
 espTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -195,8 +207,8 @@ espTabBtn.AutoButtonColor = false
 espTabBtn.Parent = tabBar
 
 local creditsTabBtn = Instance.new("TextButton")
-creditsTabBtn.Size = UDim2.new(0.334, 0, 1, 0)
-creditsTabBtn.Position = UDim2.new(0.666, 0, 0, 0)
+creditsTabBtn.Size = UDim2.new(0.25, 0, 1, 0)
+creditsTabBtn.Position = UDim2.new(0.75, 0, 0, 0)
 creditsTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 creditsTabBtn.Text = "Credits"
 creditsTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
@@ -212,6 +224,13 @@ mainTabFrame.Position = UDim2.new(0, 0, 0, 90)
 mainTabFrame.BackgroundTransparency = 1
 mainTabFrame.Visible = true
 mainTabFrame.Parent = mainFrame
+
+local toolsTabFrame = Instance.new("Frame")
+toolsTabFrame.Size = UDim2.new(1, 0, 1, -90)
+toolsTabFrame.Position = UDim2.new(0, 0, 0, 90)
+toolsTabFrame.BackgroundTransparency = 1
+toolsTabFrame.Visible = false
+toolsTabFrame.Parent = mainFrame
 
 local espTabFrame = Instance.new("ScrollingFrame")
 espTabFrame.Size = UDim2.new(1, 0, 1, -90)
@@ -232,9 +251,12 @@ creditsTabFrame.Parent = mainFrame
 
 local function switchTab(activeBtn, activeFrame)
     mainTabFrame.Visible = false
+    toolsTabFrame.Visible = false
     espTabFrame.Visible = false
     creditsTabFrame.Visible = false
+    
     TweenService:Create(mainTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+    TweenService:Create(toolsTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     TweenService:Create(espTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     TweenService:Create(creditsTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
  
@@ -243,6 +265,7 @@ local function switchTab(activeBtn, activeFrame)
 end
 
 mainTabBtn.MouseButton1Click:Connect(function() switchTab(mainTabBtn, mainTabFrame) end)
+toolsTabBtn.MouseButton1Click:Connect(function() switchTab(toolsTabBtn, toolsTabFrame) end)
 espTabBtn.MouseButton1Click:Connect(function() switchTab(espTabBtn, espTabFrame) end)
 creditsTabBtn.MouseButton1Click:Connect(function() switchTab(creditsTabBtn, creditsTabFrame) end)
 
@@ -397,7 +420,13 @@ local infJumpBtn = createButton(mainTabFrame, 155, 60, 130, "Inf Jump: AV", func
     end
 end)
 
-local clickTpBtn = createButton(mainTabFrame, 15, 105, 270, "Teleport med Mus: AV", function(btn)
+-- Flyttet sliders opp for å fylle plassen
+createSlider(mainTabFrame, 105, "Fly-fart", 10, 1000, flySpeed, function(v) flySpeed = v end)
+createSlider(mainTabFrame, 160, "Løpefart", 0, 500, currentWalkSpeed, function(v) currentWalkSpeed = v local h = getHumanoid() if h then h.WalkSpeed = v end end)
+createSlider(mainTabFrame, 215, "Hoppekraft", 0, 500, currentJumpPower, function(v) currentJumpPower = v local h = getHumanoid() if h then h.UseJumpPower = true h.JumpPower = v end end)
+
+-- ===================== FANEN: VERKTØY INNHOLD =====================
+local clickTpBtn = createButton(toolsTabFrame, 15, 15, 270, "Teleport med Mus: AV", function(btn)
     clickTpEnabled = not clickTpEnabled
     if clickTpEnabled then
         btn.Text = "Teleport med Mus: PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 200)}):Play()
@@ -406,7 +435,7 @@ local clickTpBtn = createButton(mainTabFrame, 15, 105, 270, "Teleport med Mus: A
     end
 end)
 
-local fullbrightBtn = createButton(mainTabFrame, 15, 150, 270, "Lys (Fullbright): AV", function(btn)
+local fullbrightBtn = createButton(toolsTabFrame, 15, 60, 270, "Lys (Fullbright): AV", function(btn)
     fullbrightEnabled = not fullbrightEnabled
  
     if fullbrightEnabled then
@@ -439,12 +468,7 @@ local fullbrightBtn = createButton(mainTabFrame, 15, 150, 270, "Lys (Fullbright)
     end
 end)
 
-createSlider(mainTabFrame, 205, "Fly-fart", 10, 1000, flySpeed, function(v) flySpeed = v end)
-createSlider(mainTabFrame, 260, "Løpefart", 0, 500, currentWalkSpeed, function(v) currentWalkSpeed = v local h = getHumanoid() if h then h.WalkSpeed = v end end)
-createSlider(mainTabFrame, 315, "Hoppekraft", 0, 500, currentJumpPower, function(v) currentJumpPower = v local h = getHumanoid() if h then h.UseJumpPower = true h.JumpPower = v end end)
-
--- ===================== HITBOX EXPANDER =====================
-local hitboxBtn = createButton(mainTabFrame, 15, 370, 270, "Utvid Hitbox (Chest): AV", function(btn)
+local hitboxBtn = createButton(toolsTabFrame, 15, 105, 270, "Utvid Hitbox (Chest): AV", function(btn)
     hitboxEnabled = not hitboxEnabled
     if hitboxEnabled then
         btn.Text = "Utvid Hitbox (Chest): PÅ"
@@ -463,7 +487,7 @@ local hitboxBtn = createButton(mainTabFrame, 15, 370, 270, "Utvid Hitbox (Chest)
     end
 end)
 
-createSlider(mainTabFrame, 420, "Hitbox Størrelse", 2, 50, hitboxSize, function(v) 
+createSlider(toolsTabFrame, 155, "Hitbox Størrelse", 2, 50, hitboxSize, function(v) 
     hitboxSize = v 
 end)
 
@@ -802,940 +826,6 @@ RunService.RenderStepped:Connect(function()
                         if localChest then
                             local chestPos, _ = camera:WorldToViewportPoint(localChest.Position)
                             p1 = Vector2.new(chestPos.X, chestPos.Y)
-                        else
-                            p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y) 
-                        end
-                    end
-                    
-                    local p2 = Vector2.new(vector.X, vector.Y)
-                    local distance = (p1 - p2).Magnitude
-                    local center = (p1 + p2) / 2
-
-                    tracer.Position = UDim2.new(0, center.X, 0, center.Y)
-                    tracer.Size = UDim2.new(0, distance, 0, 1.5) 
-                    tracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
-                else
-                    tracer.Visible = false
-                end
-            else
-                if tracer then tracer.Visible = false end
-            end
-        end
-    end
-end)
-
-local function hookPlayer(p)
-    if p == player then return end
-    if p.Character then 
-        task.spawn(function() updateESP(p.Character) end)
-    end
-    espConnections[p.UserId] = p.CharacterAdded:Connect(function(char)
-        task.wait(0.5) updateESP(char)
-    end)
-end
-
-for _, p in pairs(Players:GetPlayers()) do hookPlayer(p) end
-Players.PlayerAdded:Connect(hookPlayer)
-Players.PlayerRemoving:Connect(function(p)
-    if espConnections[p.UserId] then espConnections[p.UserId]:Disconnect() espConnections[p.UserId] = nil end
-    if tracerFrames[p.UserId] then tracerFrames[p.UserId]:Destroy() tracerFrames[p.UserId] = nil end
-end)
-
--- Drag & Resize systemer
-local resizeButton = Instance.new("TextButton")
-resizeButton.Size = UDim2.new(0, 24, 0, 24)
-resizeButton.Position = UDim2.new(1, -24, 1, -24)
-resizeButton.BackgroundTransparency = 1
-resizeButton.Text = "↘"
-resizeButton.TextColor3 = Color3.fromRGB(150, 150, 150)
-resizeButton.TextSize = 18
-resizeButton.Font = Enum.Font.GothamBold
-resizeButton.ZIndex = 10
-resizeButton.Parent = mainFrame
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.F then
-        flying = not flying
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        local hum = getHumanoid()
-        if flying then
-            if hrp and hum then
-                hum.PlatformStand = true
-                bodyVelocity = Instance.new("BodyVelocity", hrp)
-                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bodyGyro = Instance.new("BodyGyro", hrp)
-                bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                bodyGyro.P = 3000
-                flyBtn.Text = "Fly: PÅ";
-                TweenService:Create(flyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 60, 60)}):Play()
-            end
-        else
-            if hum then hum.PlatformStand = false end
-            if bodyVelocity then bodyVelocity:Destroy() end
-            if bodyGyro then bodyGyro:Destroy() end
-            flyBtn.Text = "Fly: AV (F)";
-            TweenService:Create(flyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end 
-    if clickTpEnabled and input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local hit = mouse.Hit
-        local char = player.Character
-        if hit and char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.CFrame = CFrame.new(hit.Position + Vector3.new(0, 3.5, 0))
-        end
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if infJumpEnabled then
-        local hum = getHumanoid()
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-    end
-end)
-
-local draggingMenu, resizingMenu = false, false
-local dragStartPos, startFramePos, startScale
-
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingMenu = true;
-        dragStartPos = input.Position; startFramePos = mainFrame.Position
-    end
-end)
-
-resizeButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        resizingMenu = true; dragStartPos = input.Position; startScale = uiScale.Scale
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if draggingMenu and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStartPos
-        mainFrame.Position = UDim2.new(startFramePos.X.Scale, startFramePos.X.Offset + delta.X, startFramePos.Y.Scale, startFramePos.Y.Offset + delta.Y)
-    elseif resizingMenu and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local deltaY = input.Position.Y - dragStartPos.Y
-        local newScale = math.clamp(startScale + (deltaY / 200), 0.5, 3) 
-        TweenService:Create(uiScale, TweenInfo.new(0.05, Enum.EasingStyle.Linear), {Scale = newScale}):Play()
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        draggingMenu = false;
-        resizingMenu = false
-    end
-end)
-
--- Pop-up start animasjon
-TweenService:Create(uiScale, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Scale = 1}):Play()--[[
-    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 1.9.3)
-    Inneholder: Fly, Noclip, Click TP, Sitt, Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER + TØFF VERSJONS-BADGE + TRACER MODUS POPUP + RGB ESP.
-]]
-
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting") 
-
-local player = Players.LocalPlayer
-local mouse = player:GetMouse()
-local camera = workspace.CurrentCamera
-
--- ===================== INNSTILLINGER =====================
-local menuVersion = "v1.9.3"
-local flySpeed = 50
-local currentWalkSpeed = 16
-local currentJumpPower = 50
-local hitboxSize = 5 
-
--- Status for toggles
-local flying = false
-local noclipEnabled = false
-local clickTpEnabled = false
-local infJumpEnabled = false
-local fullbrightEnabled = false
-local hitboxEnabled = false
-
--- ESP Innstillinger
-local espEnabled = false
-local espNamesEnabled = false
-local espHealthEnabled = false
-local espLinesEnabled = false
-local tracerOriginMode = 1 -- 1 = Bunn, 2 = Topp, 3 = Avatar
-
--- ESP Farge Innstillinger
-local rainbowEspEnabled = false
-local espColorR = 0
-local espColorG = 255
-local espColorB = 120
-local espColor = Color3.fromRGB(espColorR, espColorG, espColorB)
-
-local bodyVelocity, bodyGyro
-local noclipConnection
-local fullbrightConnection
-local originalLighting = {} 
-local espConnections = {}
-local tracerFrames = {}
-
-local animatedSliders = {}
-
-local function getHumanoid()
-    return player.Character and player.Character:FindFirstChild("Humanoid")
-end
-
--- ===================== SIKKERHET FOR EXECUTORS =====================
-local guiName = "MikaelUltimateMenu"
-pcall(function()
-    if gethui and gethui():FindFirstChild(guiName) then
-        gethui():FindFirstChild(guiName):Destroy()
-    elseif CoreGui:FindFirstChild(guiName) then
-        CoreGui:FindFirstChild(guiName):Destroy()
-    elseif player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild(guiName) then
-        player.PlayerGui:FindFirstChild(guiName):Destroy()
-    end
-end)
-
--- ===================== BYGG GUI (Hovedramme) =====================
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = guiName
-screenGui.ResetOnSpawn = false
-
-pcall(function()
-    if gethui then screenGui.Parent = gethui() else screenGui.Parent = CoreGui end
-end)
-if not screenGui.Parent then screenGui.Parent = player:WaitForChild("PlayerGui") end
-
--- Mappe for ESP-linjer
-local tracerFolder = Instance.new("Folder")
-tracerFolder.Name = "TracerFolder"
-tracerFolder.Parent = screenGui
-
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 560) 
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5) 
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24) 
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
-
-local uiStroke = Instance.new("UIStroke")
-uiStroke.Color = Color3.fromRGB(80, 80, 100)
-uiStroke.Thickness = 1.5
-uiStroke.Parent = mainFrame
-
-local uiScale = Instance.new("UIScale")
-uiScale.Scale = 0
-uiScale.Parent = mainFrame
-
--- ===================== TOPPLINJE & TØFF VERSJONS-BADGE =====================
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 55)
-titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 33)
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
-Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 14)
-
-local titleFiller = Instance.new("Frame")
-titleFiller.Size = UDim2.new(1, 0, 0, 14)
-titleFiller.Position = UDim2.new(0, 0, 1, -14)
-titleFiller.BackgroundColor3 = Color3.fromRGB(25, 25, 33)
-titleFiller.BorderSizePixel = 0
-titleFiller.Parent = titleBar
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 30)
-titleLabel.Position = UDim2.new(0, 0, 0, 5)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Mikael Ultimate"
-titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.TextSize = 22
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.TextXAlignment = Enum.TextXAlignment.Center
-titleLabel.Parent = titleBar
-
-local mikaelLabel = Instance.new("TextLabel")
-mikaelLabel.Size = UDim2.new(1, 0, 0, 15)
-mikaelLabel.Position = UDim2.new(0, 0, 0, 33)
-mikaelLabel.BackgroundTransparency = 1
-mikaelLabel.Text = "Laget av Mikael"
-mikaelLabel.Font = Enum.Font.GothamMedium
-mikaelLabel.TextSize = 12
-mikaelLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-mikaelLabel.TextXAlignment = Enum.TextXAlignment.Center
-mikaelLabel.Parent = titleBar
-
--- VERSJONS-BADGE (Tøft design)
-local versionBadge = Instance.new("Frame")
-versionBadge.Size = UDim2.new(0, 52, 0, 20)
-versionBadge.Position = UDim2.new(1, -65, 0, 15)
-versionBadge.BackgroundColor3 = Color3.fromRGB(15, 10, 10)
-versionBadge.Rotation = 8 
-versionBadge.Parent = titleBar
-Instance.new("UICorner", versionBadge).CornerRadius = UDim.new(0, 4)
-
-local badgeStroke = Instance.new("UIStroke")
-badgeStroke.Color = Color3.fromRGB(255, 40, 40)
-badgeStroke.Thickness = 1.5
-badgeStroke.Parent = versionBadge
-
-local versionText = Instance.new("TextLabel")
-versionText.Size = UDim2.new(1, 0, 1, 0)
-versionText.BackgroundTransparency = 1
-versionText.Text = menuVersion
-versionText.Font = Enum.Font.GothamBlack
-versionText.TextSize = 12
-versionText.TextColor3 = Color3.fromRGB(255, 40, 40)
-versionText.Parent = versionBadge
-
--- ===================== FANER (TABS SYSTEM) =====================
-local tabBar = Instance.new("Frame")
-tabBar.Size = UDim2.new(1, 0, 0, 35)
-tabBar.Position = UDim2.new(0, 0, 0, 55)
-tabBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-tabBar.BorderSizePixel = 0
-tabBar.Parent = mainFrame
-
-local mainTabBtn = Instance.new("TextButton")
-mainTabBtn.Size = UDim2.new(0.333, 0, 1, 0)
-mainTabBtn.Position = UDim2.new(0, 0, 0, 0)
-mainTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-mainTabBtn.Text = "Hovedmeny"
-mainTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-mainTabBtn.Font = Enum.Font.GothamBold
-mainTabBtn.TextSize = 12
-mainTabBtn.BorderSizePixel = 0
-mainTabBtn.AutoButtonColor = false
-mainTabBtn.Parent = tabBar
-
-local espTabBtn = Instance.new("TextButton")
-espTabBtn.Size = UDim2.new(0.333, 0, 1, 0)
-espTabBtn.Position = UDim2.new(0.333, 0, 0, 0)
-espTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-espTabBtn.Text = "ESP Seksjon"
-espTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-espTabBtn.Font = Enum.Font.GothamBold
-espTabBtn.TextSize = 12
-espTabBtn.BorderSizePixel = 0
-espTabBtn.AutoButtonColor = false
-espTabBtn.Parent = tabBar
-
-local creditsTabBtn = Instance.new("TextButton")
-creditsTabBtn.Size = UDim2.new(0.334, 0, 1, 0)
-creditsTabBtn.Position = UDim2.new(0.666, 0, 0, 0)
-creditsTabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-creditsTabBtn.Text = "Credits"
-creditsTabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-creditsTabBtn.Font = Enum.Font.GothamBold
-creditsTabBtn.TextSize = 12
-creditsTabBtn.BorderSizePixel = 0
-creditsTabBtn.AutoButtonColor = false
-creditsTabBtn.Parent = tabBar
-
-local mainTabFrame = Instance.new("Frame")
-mainTabFrame.Size = UDim2.new(1, 0, 1, -90)
-mainTabFrame.Position = UDim2.new(0, 0, 0, 90)
-mainTabFrame.BackgroundTransparency = 1
-mainTabFrame.Visible = true
-mainTabFrame.Parent = mainFrame
-
--- ESP Tab Frame har nå ScrollingFrame så den ikke blir for trang
-local espTabFrame = Instance.new("ScrollingFrame")
-espTabFrame.Size = UDim2.new(1, 0, 1, -90)
-espTabFrame.Position = UDim2.new(0, 0, 0, 90)
-espTabFrame.BackgroundTransparency = 1
-espTabFrame.BorderSizePixel = 0
-espTabFrame.ScrollBarThickness = 4
-espTabFrame.CanvasSize = UDim2.new(0, 0, 0, 480) -- Ekstra plass til fargesliders
-espTabFrame.Visible = false
-espTabFrame.Parent = mainFrame
-
-local creditsTabFrame = Instance.new("Frame")
-creditsTabFrame.Size = UDim2.new(1, 0, 1, -90)
-creditsTabFrame.Position = UDim2.new(0, 0, 0, 90)
-creditsTabFrame.BackgroundTransparency = 1
-creditsTabFrame.Visible = false
-creditsTabFrame.Parent = mainFrame
-
-local function switchTab(activeBtn, activeFrame)
-    mainTabFrame.Visible = false
-    espTabFrame.Visible = false
-    creditsTabFrame.Visible = false
-    TweenService:Create(mainTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-    TweenService:Create(espTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-    TweenService:Create(creditsTabBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
- 
-    activeFrame.Visible = true
-    TweenService:Create(activeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-end
-
-mainTabBtn.MouseButton1Click:Connect(function() switchTab(mainTabBtn, mainTabFrame) end)
-espTabBtn.MouseButton1Click:Connect(function() switchTab(espTabBtn, espTabFrame) end)
-creditsTabBtn.MouseButton1Click:Connect(function() switchTab(creditsTabBtn, creditsTabFrame) end)
-
--- ===================== CREDITS INNHOLD =====================
-local creditsText = Instance.new("TextLabel")
-creditsText.Size = UDim2.new(1, -40, 1, -40)
-creditsText.Position = UDim2.new(0, 20, 0, 20)
-creditsText.BackgroundTransparency = 1
-creditsText.Text = "Credits til Sigurd og Liam for å ha vært der mens jeg lagde denne menyen og for å holde meg med selskap.\nDere er best! 👑"
-creditsText.TextColor3 = Color3.fromRGB(220, 220, 220)
-creditsText.Font = Enum.Font.GothamMedium
-creditsText.TextSize = 16
-creditsText.TextWrapped = true
-creditsText.TextXAlignment = Enum.TextXAlignment.Left   
-creditsText.TextYAlignment = Enum.TextYAlignment.Top    
-creditsText.Parent = creditsTabFrame
-
--- ===================== HOVEDFUNKSJON FOR KNAPPER =====================
-local function createButton(parentFrame, xPos, yPos, width, name, onClick)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, width, 0, 35)
-    btn.Position = UDim2.new(0, xPos, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
-    btn.AutoButtonColor = false
-    btn.Parent = parentFrame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
-    btn.MouseButton1Click:Connect(function()
-        onClick(btn)
-        TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(0, width - 4, 0, 31), Position = UDim2.new(0, xPos + 2, 0, yPos + 2)}):Play()
-        task.wait(0.1)
-        TweenService:Create(btn, TweenInfo.new(0.1), {Size = UDim2.new(0, width, 0, 35), Position = UDim2.new(0, xPos, 0, yPos)}):Play()
-    end)
-    return btn
-end
-
--- ===================== SLIDER FUNKSJON (Oppdatert for å støtte ParentFrame) =====================
-local function createSlider(parentFrame, yPos, name, minVal, maxVal, defaultVal, onChange)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -30, 0, 20)
-    label.Position = UDim2.new(0, 15, 0, yPos)
-    label.BackgroundTransparency = 1
-    label.Text = name .. ": " .. defaultVal
-    label.Font = Enum.Font.GothamMedium
-    label.TextSize = 13
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = parentFrame
-
-    local track = Instance.new("Frame")
-    track.Size = UDim2.new(1, -30, 0, 6)
-    track.Position = UDim2.new(0, 15, 0, yPos + 22)
-    track.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    track.BorderSizePixel = 0
-    track.Parent = parentFrame
-    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
-
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((defaultVal-minVal)/(maxVal-minVal), 0, 1, 0)
-    fill.BorderSizePixel = 0
-    fill.Parent = track
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-    local knob = Instance.new("TextButton")
-    knob.Size = UDim2.new(0, 16, 0, 16)
-    knob.Position = UDim2.new((defaultVal-minVal)/(maxVal-minVal), -8, 0.5, -8)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    knob.Text = ""
-    knob.Parent = track
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-
-    table.insert(animatedSliders, {fill = fill, label = label})
-
-    local sliding = false
-    local function updateFromX(xPos)
-        local fraction = math.clamp((xPos - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-        fill.Size = UDim2.new(fraction, 0, 1, 0)
-        knob.Position = UDim2.new(fraction, -8, 0.5, -8)
-        local value = math.floor(minVal + fraction * (maxVal - minVal))
-        label.Text = name .. ": " .. value
-        onChange(value)
-    end
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = true updateFromX(input.Position.X) end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then sliding = false end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateFromX(input.Position.X) end
-    end)
-end
-
--- ===================== FANEN: HOVEDMENY INNHOLD =====================
-local flyBtn = createButton(mainTabFrame, 15, 15, 130, "Fly: AV (F)", function(btn)
-    flying = not flying
-    if flying then
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        local hum = getHumanoid()
-        if hrp and hum then
-            hum.PlatformStand = true
-            bodyVelocity = Instance.new("BodyVelocity", hrp)
-            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyGyro = Instance.new("BodyGyro", hrp)
-            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            bodyGyro.P = 3000
-            btn.Text = "Fly: PÅ";
-            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 60, 60)}):Play()
-        end
-    else
-        local hum = getHumanoid() if hum then hum.PlatformStand = false end
-        if bodyVelocity then bodyVelocity:Destroy() end
-        if bodyGyro then bodyGyro:Destroy() end
-        btn.Text = "Fly: AV (F)";
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-    end
-end)
-
-local noclipBtn = createButton(mainTabFrame, 155, 15, 130, "Noclip: AV", function(btn)
-    noclipEnabled = not noclipEnabled
-    if noclipEnabled then
-        btn.Text = "Noclip: PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 120, 200)}):Play()
-        noclipConnection = RunService.Stepped:Connect(function()
-            if player.Character then
-                for _, p in pairs(player.Character:GetDescendants()) do
-                    if p:IsA("BasePart") and p.CanCollide then p.CanCollide = false end
-                end
-            end
-        end)
-    else
-        btn.Text = "Noclip: AV"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        if noclipConnection then noclipConnection:Disconnect() end
-    end
-end)
-
-local sitBtn = createButton(mainTabFrame, 15, 60, 130, "Sitt Ned", function(btn)
-    local hum = getHumanoid()
-    if hum then hum.Sit = true end
-end)
-
-local infJumpBtn = createButton(mainTabFrame, 155, 60, 130, "Inf Jump: AV", function(btn)
-    infJumpEnabled = not infJumpEnabled
-    if infJumpEnabled then
-        btn.Text = "Inf Jump: PÅ";
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 200, 100)}):Play()
-    else
-        btn.Text = "Inf Jump: AV";
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-    end
-end)
-
-local clickTpBtn = createButton(mainTabFrame, 15, 105, 270, "Teleport med Mus: AV", function(btn)
-    clickTpEnabled = not clickTpEnabled
-    if clickTpEnabled then
-        btn.Text = "Teleport med Mus: PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(150, 40, 200)}):Play()
-    else
-        btn.Text = "Teleport med Mus: AV"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-    end
-end)
-
-local fullbrightBtn = createButton(mainTabFrame, 15, 150, 270, "Lys (Fullbright): AV", function(btn)
-    fullbrightEnabled = not fullbrightEnabled
- 
-    if fullbrightEnabled then
-        btn.Text = "Lys (Fullbright): PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 200, 50)}):Play() 
-        
-        originalLighting.Ambient = Lighting.Ambient
-        originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
-        originalLighting.GlobalShadows = Lighting.GlobalShadows
-        originalLighting.Brightness = Lighting.Brightness
-        
-        fullbrightConnection = RunService.RenderStepped:Connect(function()
-            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-            Lighting.GlobalShadows = false
-            Lighting.Brightness = 3 
-        end)
-    else
-        btn.Text = "Lys (Fullbright): AV";
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        if fullbrightConnection then
-            fullbrightConnection:Disconnect()
-            fullbrightConnection = nil
-        end
-        if originalLighting.Ambient then
-            Lighting.Ambient = originalLighting.Ambient
-            Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
-            Lighting.GlobalShadows = originalLighting.GlobalShadows
-            Lighting.Brightness = originalLighting.Brightness
-        end
-    end
-end)
-
--- Eksisterende Sliders (Nå med mainTabFrame parameter)
-createSlider(mainTabFrame, 205, "Fly-fart", 10, 1000, flySpeed, function(v) flySpeed = v end)
-createSlider(mainTabFrame, 260, "Løpefart", 0, 500, currentWalkSpeed, function(v) currentWalkSpeed = v local h = getHumanoid() if h then h.WalkSpeed = v end end)
-createSlider(mainTabFrame, 315, "Hoppekraft", 0, 500, currentJumpPower, function(v) currentJumpPower = v local h = getHumanoid() if h then h.UseJumpPower = true h.JumpPower = v end end)
-
--- ===================== HITBOX EXPANDER =====================
-local hitboxBtn = createButton(mainTabFrame, 15, 370, 270, "Utvid Hitbox (Chest): AV", function(btn)
-    hitboxEnabled = not hitboxEnabled
-    if hitboxEnabled then
-        btn.Text = "Utvid Hitbox (Chest): PÅ"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(220, 50, 50)}):Play()
-    else
-        btn.Text = "Utvid Hitbox (Chest): AV"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = p.Character.HumanoidRootPart
-                hrp.Size = Vector3.new(2, 2, 1) 
-                hrp.Transparency = 1
-            end
-        end
-    end
-end)
-
-createSlider(mainTabFrame, 420, "Hitbox Størrelse", 2, 50, hitboxSize, function(v) 
-    hitboxSize = v 
-end)
-
--- ===================== FANEN: ESP MOTOR LOGIKK =====================
-local function updateESP(char)
-    if not char then return end
-    local pChar = Players:GetPlayerFromCharacter(char)
-    if pChar == player or not pChar then return end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChildOfClass("Humanoid")
-
-    local highlight = char:FindFirstChild("MikaelESP")
-    if espEnabled then
-        if not highlight then
-            highlight = Instance.new("Highlight")
-            highlight.Name = "MikaelESP"
-            highlight.FillColor = espColor 
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlight.Parent = char
-        end
-    else
-        if highlight then highlight:Destroy() end
-    end
-
-    if hrp and hum then
-        local nameBbg = hrp:FindFirstChild("MikaelNameESP")
-        if espNamesEnabled and hum.Health > 0 then
-            if not nameBbg then
-                nameBbg = Instance.new("BillboardGui")
-                nameBbg.Name = "MikaelNameESP"
-                nameBbg.Size = UDim2.new(0, 200, 0, 25)
-                nameBbg.StudsOffset = Vector3.new(0, 3.5, 0) 
-                nameBbg.AlwaysOnTop = true
-                nameBbg.Parent = hrp
-
-                local nameLabel = Instance.new("TextLabel")
-                nameLabel.Name = "NameLabel"
-                nameLabel.Size = UDim2.new(1, 0, 1, 0)
-                nameLabel.BackgroundTransparency = 1
-                nameLabel.Text = pChar.Name
-                nameLabel.TextColor3 = espColor
-                nameLabel.Font = Enum.Font.GothamBold
-                nameLabel.TextSize = 13
-                nameLabel.TextXAlignment = Enum.TextXAlignment.Center
-                nameLabel.TextStrokeTransparency = 0
-                nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-                nameLabel.Parent = nameBbg
-            end
-        else
-            if nameBbg then nameBbg:Destroy() end
-        end
-
-        local healthBbg = hrp:FindFirstChild("MikaelHealthESP")
-        if espHealthEnabled and hum.Health > 0 then
-            if not healthBbg then
-                healthBbg = Instance.new("BillboardGui")
-                healthBbg.Name = "MikaelHealthESP"
-                healthBbg.Size = UDim2.new(0, 5, 0, 45) 
-                healthBbg.StudsOffset = Vector3.new(-1.2, 0, 0) 
-                healthBbg.AlwaysOnTop = true
-                healthBbg.Parent = hrp
-
-                local healthBg = Instance.new("Frame")
-                healthBg.Size = UDim2.new(1, 0, 1, 0)
-                healthBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                healthBg.BorderSizePixel = 0
-                Instance.new("UICorner", healthBg).CornerRadius = UDim.new(1, 0)
-                healthBg.Parent = healthBbg
-
-                local healthFill = Instance.new("Frame")
-                healthFill.Name = "HealthFill"
-                healthFill.Size = UDim2.new(1, 0, 1, 0)
-                healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
-                healthFill.BorderSizePixel = 0
-                Instance.new("UICorner", healthFill).CornerRadius = UDim.new(1, 0)
-                healthFill.Parent = healthBg
-
-                local function adjustBar()
-                    if hum and healthFill then
-                        local scale = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-                        healthFill.Size = UDim2.new(1, 0, scale, 0)
-                        healthFill.Position = UDim2.new(0, 0, 1 - scale, 0)
-                        healthFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0):Lerp(Color3.fromRGB(0, 255, 100), scale)
-                    end
-                end
-                adjustBar()
-          
-                local conn = hum.HealthChanged:Connect(adjustBar)
-                healthBbg.Destroying:Connect(function() conn:Disconnect() end)
-            else
-                local fill = healthBbg:FindFirstChild("HealthFill", true)
-                if fill then
-                    local scale = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-                    fill.Size = UDim2.new(1, 0, scale, 0)
-                    fill.Position = UDim2.new(0, 0, 1 - scale, 0)
-                end
-            end
-        else
-            if healthBbg then healthBbg:Destroy() end
-        end
-    end
-end
-
-local function refreshAllESP()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p.Character then updateESP(p.Character) end
-    end
-end
-
--- ESP Seksjonsknapper
-local mainEspBtn = createButton(espTabFrame, 15, 20, 270, "Bokser (Highlight): AV", function(btn)
-    espEnabled = not espEnabled
-    if espEnabled then btn.Text = "Bokser (Highlight): PÅ";
-    TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else btn.Text = "Bokser (Highlight): AV";
-    TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
-    refreshAllESP()
-end)
-
-local namesEspBtn = createButton(espTabFrame, 15, 70, 270, "Navneskilt (NameTags): AV", function(btn)
-    espNamesEnabled = not espNamesEnabled
-    if espNamesEnabled then btn.Text = "Navneskilt (NameTags): PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else btn.Text = "Navneskilt (NameTags): AV"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
-    refreshAllESP()
-end)
-
-local healthEspBtn = createButton(espTabFrame, 15, 120, 270, "Livlinje (HealthBar): AV", function(btn)
-    espHealthEnabled = not espHealthEnabled
-    if espHealthEnabled then btn.Text = "Livlinje (HealthBar): PÅ"; TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else btn.Text = "Livlinje (HealthBar): AV";
-    TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
-    refreshAllESP()
-end)
-
--- TRACER MENY MED POPUP
-local linesEspBtn = createButton(espTabFrame, 15, 170, 225, "Linjer (Tracers): AV", function(btn)
-    espLinesEnabled = not espLinesEnabled
-    if espLinesEnabled then 
-        btn.Text = "Linjer (Tracers): PÅ"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 180, 90)}):Play()
-    else 
-        btn.Text = "Linjer (Tracers): AV"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() 
-    end
-end)
-
-local tracerPopupFrame = Instance.new("Frame")
-tracerPopupFrame.Size = UDim2.new(0, 110, 0, 110)
-tracerPopupFrame.Position = UDim2.new(0, 175, 0, 210)
-tracerPopupFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
-tracerPopupFrame.BorderSizePixel = 0
-tracerPopupFrame.ZIndex = 10
-tracerPopupFrame.Visible = false
-tracerPopupFrame.Parent = espTabFrame
-Instance.new("UICorner", tracerPopupFrame).CornerRadius = UDim.new(0, 8)
-local popupStroke = Instance.new("UIStroke")
-popupStroke.Color = Color3.fromRGB(80, 80, 100)
-popupStroke.Thickness = 1.5
-popupStroke.Parent = tracerPopupFrame
-
-local tracerPopupVisible = false
-local tracerArrowBtn = createButton(espTabFrame, 245, 170, 40, "▼", function(btn)
-    tracerPopupVisible = not tracerPopupVisible
-    if tracerPopupVisible then
-        btn.Text = "▲"
-        tracerPopupFrame.Visible = true
-    else
-        btn.Text = "▼"
-        tracerPopupFrame.Visible = false
-    end
-end)
-
-local function setTracerMode(mode)
-    tracerOriginMode = mode
-    tracerPopupVisible = false
-    tracerArrowBtn.Text = "▼"
-    tracerPopupFrame.Visible = false
-end
-
-local modeBunnBtn = createButton(tracerPopupFrame, 5, 5, 100, "Bunn", function() setTracerMode(1) end)
-local modeToppBtn = createButton(tracerPopupFrame, 5, 40, 100, "Topp", function() setTracerMode(2) end)
-local modeAvatarBtn = createButton(tracerPopupFrame, 5, 75, 100, "Avatar", function() setTracerMode(3) end)
-
-modeBunnBtn.ZIndex = 11
-modeToppBtn.ZIndex = 11
-modeAvatarBtn.ZIndex = 11
-
--- ===================== FARGE SYSTEM (RGB & REGNBUE) =====================
-local espRainbowBtn = createButton(espTabFrame, 15, 220, 270, "Regnbue ESP: AV", function(btn)
-    rainbowEspEnabled = not rainbowEspEnabled
-    if rainbowEspEnabled then
-        btn.Text = "Regnbue ESP: PÅ"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 200)}):Play()
-    else
-        btn.Text = "Regnbue ESP: AV"
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play()
-        espColor = Color3.fromRGB(espColorR, espColorG, espColorB)
-    end
-end)
-
-createSlider(espTabFrame, 270, "ESP Rød (R)", 0, 255, espColorR, function(v) 
-    espColorR = v 
-    if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
-end)
-createSlider(espTabFrame, 325, "ESP Grønn (G)", 0, 255, espColorG, function(v) 
-    espColorG = v 
-    if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
-end)
-createSlider(espTabFrame, 380, "ESP Blå (B)", 0, 255, espColorB, function(v) 
-    espColorB = v 
-    if not rainbowEspEnabled then espColor = Color3.fromRGB(espColorR, espColorG, espColorB) end
-end)
-
--- ===================== FARGE & PULS ANIMASJONER + ESP LIVE OPPDATERING =====================
-RunService.RenderStepped:Connect(function()
-    local tid = os.clock()
-    
-    -- Tittelfarge (Regnbue)
-    local rainbowColor = Color3.fromHSV((tid % 4) / 4, 0.8, 1)
-    titleLabel.TextColor3 = rainbowColor
-    mikaelLabel.TextColor3 = rainbowColor
-
-    -- Slider-farger (Pustende Grønn)
-    local greenHue = 0.33 + math.sin(tid * 2) * 0.08
-    local sliderColor = Color3.fromHSV(greenHue, 0.85, 1)
-    local textColor = Color3.fromHSV(greenHue, 0.4, 1) 
-    for _, items in ipairs(animatedSliders) do
-        items.fill.BackgroundColor3 = sliderColor
-        items.label.TextColor3 = textColor
-    end
-    
-    -- VERSJONSMERKE (Aggressiv Rød Pulsering)
-    local redPulse = 0.5 + math.sin(tid * 4) * 0.5 
-    local aggressiveRed = Color3.fromRGB(150 + (105 * redPulse), 20, 20)
-    badgeStroke.Color = aggressiveRed
-    versionText.TextColor3 = aggressiveRed
-
-    -- Regnbue ESP Logikk og Live-Oppdatering av ESP Farger
-    if rainbowEspEnabled then
-        espColor = Color3.fromHSV((tid % 3) / 3, 1, 1)
-    end
-
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            local char = p.Character
-            if espEnabled then
-                local highlight = char:FindFirstChild("MikaelESP")
-                if highlight then highlight.FillColor = espColor end
-            end
-            
-            if espNamesEnabled then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local nameBbg = hrp:FindFirstChild("MikaelNameESP")
-                    if nameBbg then
-                        local nameLabel = nameBbg:FindFirstChild("NameLabel")
-                        if nameLabel then nameLabel.TextColor3 = espColor end
-                    end
-                end
-            end
-        end
-        
-        -- Live oppdatering av Tracer farge
-        if espLinesEnabled then
-            local tracer = tracerFrames[p.UserId]
-            if tracer then tracer.BackgroundColor3 = espColor end
-        end
-    end
-end)
-
--- ===================== HOVED LOOP (Fly, Tracers, Hitbox) =====================
-RunService.RenderStepped:Connect(function()
-    if hitboxEnabled then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = p.Character.HumanoidRootPart
-                hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                hrp.Transparency = 0.6
-                hrp.BrickColor = BrickColor.new("Bright red")
-                hrp.Material = Enum.Material.Neon
-                hrp.CanCollide = false 
-            end
-        end
-    end
-
-    if flying and bodyVelocity and bodyGyro then
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local moveDir = Vector3.zero
-            local cam = camera.CFrame
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0, 1, 0) end
-            if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
-            bodyVelocity.Velocity = moveDir * flySpeed
-            bodyGyro.CFrame = CFrame.new(hrp.Position, hrp.Position + cam.LookVector)
-        end
-    end
-
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= player then
-            local tracer = tracerFrames[p.UserId]
-            local char = p.Character
-            if espLinesEnabled and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                if not tracer then
-                    tracer = Instance.new("Frame")
-                    tracer.AnchorPoint = Vector2.new(0.5, 0.5)
-                    tracer.BackgroundColor3 = espColor
-                    tracer.BorderSizePixel = 0
-                    tracer.Parent = tracerFolder
-                    tracerFrames[p.UserId] = tracer
-                end
-
-                local hrp = char.HumanoidRootPart
-                local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
-
-                if onScreen then
-                    tracer.Visible = true
-                    
-                    local p1
-                    if tracerOriginMode == 1 then
-                        p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
-                    elseif tracerOriginMode == 2 then
-                        p1 = Vector2.new(camera.ViewportSize.X / 2, 0)
-                    else
-                        local localHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                        if localHrp then
-                            local hrpPos, _ = camera:WorldToViewportPoint(localHrp.Position)
-                            p1 = Vector2.new(hrpPos.X, hrpPos.Y)
                         else
                             p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y) 
                         end
