@@ -1,7 +1,7 @@
 -- [[
---     MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.8 - VISUELL OPPDATERING)
+--     MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.1.4 - FIX FOR MOUSE AIMBOT)
 --     Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
---     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP (Bokser, Navn, HP, Tracers), Aimbot & UI Effects!
+--     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP, MOUSE-AIMBOT, HYBRID TRIGGERBOT & UI Effects!
 -- ]]
 
 local Players = game:GetService("Players")
@@ -17,7 +17,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
 -- ===================== INNSTILLINGER =====================
-local menuVersion = "v2.0.8"
+local menuVersion = "v2.1.4"
 local flySpeed = 50
 local currentWalkSpeed = 16
 local currentJumpPower = 50
@@ -31,10 +31,16 @@ local infJumpEnabled = false
 local fullbrightEnabled = false
 local hitboxEnabled = false
 
--- Aimbot Innstillinger
+-- Aimbot & Triggerbot Innstillinger
 local aimbotEnabled = false
 local aimbotSmoothness = 5
 local aimbotInstaLock = false
+local triggerbotEnabled = false
+local triggerbotDelay = 0       -- Forsinkelse i millisekunder før skudd
+local triggerbotCPS = 10        -- Klikk i sekundet (Clicks Per Second)
+local lastTrigger = 0
+local currentTargetChar = nil
+local targetAcquiredTime = 0
 local fovCircleEnabled = false
 local fovCircleRadius = 100
 local wallCheckEnabled = false
@@ -58,7 +64,7 @@ local espColorG = 255
 local espColorB = 120
 local espColor = Color3.fromRGB(0, 255, 120)
 
--- NYE: Visuelle Meny Innstillinger
+-- Visuelle Meny Innstillinger
 local menuTransparency = 0
 local rainbowMenuBorder = false
 local blurEnabled = false
@@ -72,10 +78,11 @@ local espConnections = {}
 local tracerFrames = {}
 local animatedSliders = {}
 
--- Config Referanser (Forward declarations)
+-- Config Referanser
 local setFlySpeedSlider, setWalkSpeedSlider, setJumpPowerSlider, setHitboxSlider
 local setAimbotSmoothSlider, setFovSlider, setEspRSlider, setEspGSlider, setEspBSlider
 local setMenuTransparencySlider, setRainbowBorder, setBlurEffect
+local setTriggerDelaySlider, setTriggerCpsSlider
 local flyBtn 
 
 -- Trygg opprettelse av FOV-sirkel
@@ -140,7 +147,6 @@ mainFrame.ClipsDescendants = false
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 14)
 
--- Ramme for innhold som skal klippes
 local clipFrame = Instance.new("Frame")
 clipFrame.Size = UDim2.new(1, 0, 1, 0)
 clipFrame.BackgroundTransparency = 1
@@ -222,7 +228,7 @@ tabBar.Size = UDim2.new(1, 0, 0, 35)
 tabBar.Position = UDim2.new(0, 0, 0, 55)
 tabBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 tabBar.BorderSizePixel = 0
-tabBar.CanvasSize = UDim2.new(0, 560, 0, 0) 
+tabBar.CanvasSize = UDim2.new(0, 640, 0, 0) 
 tabBar.ScrollBarThickness = 2
 tabBar.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
 tabBar.ScrollingDirection = Enum.ScrollingDirection.X
@@ -250,6 +256,7 @@ local aimbotTabBtn = createTabBtn(240, "Aimbot", false)
 local configTabBtn = createTabBtn(320, "Config", false)
 local creditsTabBtn = createTabBtn(400, "Credits", false)
 local settingsTabBtn = createTabBtn(480, "Settings", false)
+local betaTabBtn = createTabBtn(560, "Beta", false) 
 
 local function createTabFrame(visible)
     local frame = Instance.new("ScrollingFrame")
@@ -258,7 +265,7 @@ local function createTabFrame(visible)
     frame.BackgroundTransparency = 1
     frame.BorderSizePixel = 0
     frame.ScrollBarThickness = 4
-    frame.CanvasSize = UDim2.new(0, 0, 0, 550) 
+    frame.CanvasSize = UDim2.new(0, 0, 0, 600) 
     frame.Visible = visible
     frame.Parent = mainFrame
     return frame
@@ -271,6 +278,7 @@ local aimbotTabFrame = createTabFrame(false)
 local configTabFrame = createTabFrame(false)
 local creditsTabFrame = createTabFrame(false)
 local settingsTabFrame = createTabFrame(false)
+local betaTabFrame = createTabFrame(false) 
 
 local function switchTab(activeBtn, activeFrame)
     mainTabFrame.Visible = false
@@ -280,8 +288,9 @@ local function switchTab(activeBtn, activeFrame)
     configTabFrame.Visible = false
     creditsTabFrame.Visible = false
     settingsTabFrame.Visible = false
+    betaTabFrame.Visible = false
     
-    for _, btn in ipairs({mainTabBtn, toolsTabBtn, espTabBtn, aimbotTabBtn, configTabBtn, creditsTabBtn, settingsTabBtn}) do
+    for _, btn in ipairs({mainTabBtn, toolsTabBtn, espTabBtn, aimbotTabBtn, configTabBtn, creditsTabBtn, settingsTabBtn, betaTabBtn}) do
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     end
 
@@ -296,6 +305,7 @@ aimbotTabBtn.MouseButton1Click:Connect(function() switchTab(aimbotTabBtn, aimbot
 configTabBtn.MouseButton1Click:Connect(function() switchTab(configTabBtn, configTabFrame) end)
 creditsTabBtn.MouseButton1Click:Connect(function() switchTab(creditsTabBtn, creditsTabFrame) end)
 settingsTabBtn.MouseButton1Click:Connect(function() switchTab(settingsTabBtn, settingsTabFrame) end)
+betaTabBtn.MouseButton1Click:Connect(function() switchTab(betaTabBtn, betaTabFrame) end)
 
 -- ===================== CREDITS =====================
 local creditsText = Instance.new("TextLabel")
@@ -491,7 +501,7 @@ end)
 
 setHitboxSlider = createSlider(toolsTabFrame, 155, "Hitbox Størrelse", 2, 50, hitboxSize, function(v) hitboxSize = v end)
 
--- ===================== NY AIMBOT INNHOLD =====================
+-- ===================== AIMBOT INNHOLD =====================
 createButton(aimbotTabFrame, 15, 15, 130, "Aimbot: AV", function(btn)
     aimbotEnabled = not aimbotEnabled
     if aimbotEnabled then btn.Text = "Aimbot: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 100, 0)}):Play()
@@ -537,6 +547,17 @@ createButton(aimbotTabFrame, 15, 250, 270, "Vis FOV Sirkel: AV", function(btn)
 end)
 
 setFovSlider = createSlider(aimbotTabFrame, 295, "FOV Størrelse (Radius)", 20, 400, fovCircleRadius, function(v) fovCircleRadius = v end)
+
+-- ===================== BETA INNHOLD (TRIGGERBOT) =====================
+createButton(betaTabFrame, 15, 15, 270, "Triggerbot: AV", function(btn)
+    triggerbotEnabled = not triggerbotEnabled
+    if triggerbotEnabled then btn.Text = "Triggerbot: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 100)}):Play()
+    else btn.Text = "Triggerbot: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+end)
+
+setTriggerDelaySlider = createSlider(betaTabFrame, 60, "Triggerbot Forsinkelse (ms)", 0, 1000, triggerbotDelay, function(v) triggerbotDelay = v end)
+setTriggerCpsSlider = createSlider(betaTabFrame, 115, "Skudd i sekundet (CPS)", 1, 30, triggerbotCPS, function(v) triggerbotCPS = v end)
+
 
 -- ===================== ESP MOTOR & OPPDATERINGER =====================
 local function updateESP(char)
@@ -761,7 +782,6 @@ Players.PlayerRemoving:Connect(function(p)
     if tracerFrames[p.UserId] then tracerFrames[p.UserId]:Destroy() tracerFrames[p.UserId] = nil end
 end)
 
-
 -- ===================== SETTINGS INNHOLD =====================
 local menuKeybind = Enum.KeyCode.RightShift 
 local isChangingKey = false
@@ -839,8 +859,8 @@ local function saveConfig()
     local configData = {
         flySpeed = flySpeed, currentWalkSpeed = currentWalkSpeed, currentJumpPower = currentJumpPower, hitboxSize = hitboxSize,
         aimbotSmoothness = aimbotSmoothness, fovCircleRadius = fovCircleRadius, espColorR = espColorR, espColorG = espColorG, espColorB = espColorB,
-        -- NYE TING SOM LAGRES
-        menuTransparency = menuTransparency, rainbowMenuBorder = rainbowMenuBorder, blurEnabled = blurEnabled
+        menuTransparency = menuTransparency, rainbowMenuBorder = rainbowMenuBorder, blurEnabled = blurEnabled,
+        triggerbotDelay = triggerbotDelay, triggerbotCPS = triggerbotCPS
     }
     local success = pcall(function() writefile("MikaelConfig.json", HttpService:JSONEncode(configData)) end)
     return success
@@ -862,10 +882,12 @@ local function loadConfig()
             if data.espColorG then setEspGSlider(data.espColorG) end
             if data.espColorB then setEspBSlider(data.espColorB) end
             
-            -- Laster inn de nye visuelle greiene
             if data.menuTransparency then setMenuTransparencySlider(data.menuTransparency) end
             if data.rainbowMenuBorder ~= nil then setRainbowBorder(data.rainbowMenuBorder) end
             if data.blurEnabled ~= nil then setBlurEffect(data.blurEnabled) end
+            
+            if data.triggerbotDelay then setTriggerDelaySlider(data.triggerbotDelay) end
+            if data.triggerbotCPS then setTriggerCpsSlider(data.triggerbotCPS) end
 
             return true
         end
@@ -893,7 +915,7 @@ createButton(configTabFrame, 15, 110, 270, "Last Inn Innstillinger", function(bt
     end
 end)
 
--- ===================== NYE AIMBOT FUNKSJONER =====================
+-- ===================== SIKTE FUNKSJONER =====================
 local function getAimPart(char)
     if not char then return nil end
     local partName = targetParts[targetPartIndex]
@@ -999,7 +1021,6 @@ RunService.RenderStepped:Connect(function()
 
     if rainbowEspEnabled then espColor = Color3.fromHSV((tid % 3) / 3, 1, 1) end
 
-    -- NY: Oppdaterer regnbue-rammen på menyen hvis den er aktivert
     if rainbowMenuBorder then
         uiStroke.Color = Color3.fromHSV((tid % 5) / 5, 0.8, 1)
     end
@@ -1013,13 +1034,136 @@ RunService.RenderStepped:Connect(function()
         end
     end) end
 
+    -- ===================== ULTRA-STABIL TRIGGERBOT LOGIKK =====================
+    if triggerbotEnabled then
+        local targetPart = mouse.Target
+        local model = nil
+        
+        local function finnKarakterModell(part)
+            local current = part
+            while current and current ~= workspace do
+                if current:IsA("Model") and current:FindFirstChildOfClass("Humanoid") then
+                    return current
+                end
+                current = current.Parent
+            end
+            return nil
+        end
+
+        if targetPart then
+            model = finnKarakterModell(targetPart)
+        end
+        
+        if not model then
+            local mouseLoc = UserInputService:GetMouseLocation()
+            local screenRay = camera:ViewportPointToRay(mouseLoc.X, mouseLoc.Y)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+            raycastParams.FilterDescendantsInstances = {player.Character} 
+            
+            local rayResult = workspace:Raycast(screenRay.Origin, screenRay.Direction * 1000, raycastParams)
+            if rayResult and rayResult.Instance then
+                model = finnKarakterModell(rayResult.Instance)
+            end
+        end
+
+        local validTargetChar = nil
+        if model and model:FindFirstChildOfClass("Humanoid") and model:FindFirstChildOfClass("Humanoid").Health > 0 then
+            if model ~= player.Character then
+                local pTarget = Players:GetPlayerFromCharacter(model)
+                local isNPC = (pTarget == nil)
+                
+                local canTrigger = false
+                if pTarget then
+                    if not (aimbotTeamCheckEnabled and pTarget.Team == player.Team and player.Team ~= nil) then
+                        canTrigger = true
+                    end
+                elseif isNPC and npcAimbotEnabled then
+                    canTrigger = true
+                end
+                
+                if canTrigger then
+                    validTargetChar = model
+                end
+            end
+        end
+
+        if validTargetChar then
+            if currentTargetChar ~= validTargetChar then
+                currentTargetChar = validTargetChar
+                targetAcquiredTime = os.clock()
+            end
+            
+            local timeHovered = os.clock() - targetAcquiredTime
+            local delayInSeconds = triggerbotDelay / 1000
+            local minInterval = 1 / triggerbotCPS
+            
+            if timeHovered >= delayInSeconds and (os.clock() - lastTrigger) >= minInterval then
+                lastTrigger = os.clock()
+                
+                task.spawn(function()
+                    if mouse1click then
+                        mouse1click()
+                    elseif mouse1press and mouse1release then
+                        mouse1press()
+                        task.wait(0.01)
+                        mouse1release()
+                    end
+                    
+                    pcall(function()
+                        local vim = game:GetService("VirtualInputManager")
+                        local mouseLoc = UserInputService:GetMouseLocation()
+                        vim:SendMouseButtonEvent(mouseLoc.X, mouseLoc.Y, 0, true, game, 0)
+                        task.wait(0.01)
+                        vim:SendMouseButtonEvent(mouseLoc.X, mouseLoc.Y, 0, false, game, 0)
+                    end)
+
+                    local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+                    if tool then tool:Activate() end
+                end)
+            end
+        else
+            currentTargetChar = nil
+            targetAcquiredTime = 0
+        end
+    else
+        currentTargetChar = nil
+        targetAcquiredTime = 0
+    end
+
+    -- ===================== MUS-BASERT AIMBOT MED SMOOTHNESS (OPPDATERT) =====================
     if aimbotEnabled then
         local targetChar, targetPart = getClosestTargetToMouse()
-        if targetPart then
-            if aimbotInstaLock then 
-                camera.CFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
-            else 
-                camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(camera.CFrame.Position, targetPart.Position), math.clamp(1 / aimbotSmoothness, 0, 1)) 
+        if targetPart and mousemoverel then
+            local pos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+            if onScreen then
+                local mouseLocation = UserInputService:GetMouseLocation()
+                
+                -- Hent ut differansen og rund av til nærmeste hele piksel for å unngå "jitter"
+                local deltaX = math.floor(pos.X - mouseLocation.X + 0.5)
+                local deltaY = math.floor(pos.Y - mouseLocation.Y + 0.5)
+                
+                if aimbotInstaLock then 
+                    mousemoverel(deltaX, deltaY)
+                else 
+                    local smoothFactor = math.max(aimbotSmoothness, 1)
+                    
+                    local moveX = deltaX / smoothFactor
+                    local moveY = deltaY / smoothFactor
+                    
+                    -- ANTI-ZENO PARADOX LOGIKK:
+                    -- Hvis musen nesten er fremme (f.eks moveX er 0.3), stopper mousemoverel fordi den ikke kan flytte desimaler.
+                    -- Dette sjekker om vi fortsatt mangler piksler for å treffe målet, og tvinger musen til å gå minst 1 piksel 
+                    -- helt frem til den er perfekt plassert PÅ kroppen.
+                    if deltaX ~= 0 and math.abs(moveX) < 1 then
+                        moveX = (deltaX > 0) and 1 or -1
+                    end
+                    if deltaY ~= 0 and math.abs(moveY) < 1 then
+                        moveY = (deltaY > 0) and 1 or -1
+                    end
+                    
+                    mousemoverel(moveX, moveY)
+                end
             end
         end
     end
@@ -1058,7 +1202,6 @@ RunService.RenderStepped:Connect(function()
         if p ~= player then
             local char = p.Character
             
-            -- FIX: Kjører updateESP dynamisk hver ramme for å fjerne/legge til ESP basert på gjeldende lag
             if char then
                 updateESP(char)
             end
@@ -1099,6 +1242,8 @@ RunService.RenderStepped:Connect(function()
                             else
                                 p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                             end
+                        else
+                            p1 = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                         end
                         
                         local p2 = Vector2.new(vector.X, vector.Y)
