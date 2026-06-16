@@ -1,8 +1,8 @@
---[[
-    MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.8 - VISUELL OPPDATERING)
-    Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
-    Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP (Bokser, Navn, HP, Tracers), Aimbot & UI Effects!
-]]
+-- [[
+--     MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.8 - VISUELL OPPDATERING)
+--     Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
+--     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP (Bokser, Navn, HP, Tracers), Aimbot & UI Effects!
+-- ]]
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -1057,6 +1057,12 @@ RunService.RenderStepped:Connect(function()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local char = p.Character
+            
+            -- FIX: Kjører updateESP dynamisk hver ramme for å fjerne/legge til ESP basert på gjeldende lag
+            if char then
+                updateESP(char)
+            end
+
             local isTeammate = (p.Team == player.Team and player.Team ~= nil)
             local showTracers = espLinesEnabled and not (espTeamCheckEnabled and isTeammate)
 
