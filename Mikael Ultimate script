@@ -1,7 +1,7 @@
 -- [[
---     MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.0.9)
+--     MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.1.2 - TRIGGERBOT OVERHAUL)
 --     Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
---     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP, Aimbot, TRIGGERBOT & UI Effects!
+--     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP, Aimbot, HYBRID TRIGGERBOT & UI Effects!
 -- ]]
 
 local Players = game:GetService("Players")
@@ -17,7 +17,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 
 -- ===================== INNSTILLINGER =====================
-local menuVersion = "v2.0.9"
+local menuVersion = "v2.1.2"
 local flySpeed = 50
 local currentWalkSpeed = 16
 local currentJumpPower = 50
@@ -36,7 +36,11 @@ local aimbotEnabled = false
 local aimbotSmoothness = 5
 local aimbotInstaLock = false
 local triggerbotEnabled = false
+local triggerbotDelay = 0       -- Forsinkelse i millisekunder før skudd
+local triggerbotCPS = 10        -- Klikk i sekundet (Clicks Per Second)
 local lastTrigger = 0
+local currentTargetChar = nil
+local targetAcquiredTime = 0
 local fovCircleEnabled = false
 local fovCircleRadius = 100
 local wallCheckEnabled = false
@@ -78,6 +82,7 @@ local animatedSliders = {}
 local setFlySpeedSlider, setWalkSpeedSlider, setJumpPowerSlider, setHitboxSlider
 local setAimbotSmoothSlider, setFovSlider, setEspRSlider, setEspGSlider, setEspBSlider
 local setMenuTransparencySlider, setRainbowBorder, setBlurEffect
+local setTriggerDelaySlider, setTriggerCpsSlider
 local flyBtn 
 
 -- Trygg opprettelse av FOV-sirkel
@@ -223,7 +228,7 @@ tabBar.Size = UDim2.new(1, 0, 0, 35)
 tabBar.Position = UDim2.new(0, 0, 0, 55)
 tabBar.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 tabBar.BorderSizePixel = 0
-tabBar.CanvasSize = UDim2.new(0, 560, 0, 0) 
+tabBar.CanvasSize = UDim2.new(0, 640, 0, 0)
 tabBar.ScrollBarThickness = 2
 tabBar.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
 tabBar.ScrollingDirection = Enum.ScrollingDirection.X
@@ -251,6 +256,7 @@ local aimbotTabBtn = createTabBtn(240, "Aimbot", false)
 local configTabBtn = createTabBtn(320, "Config", false)
 local creditsTabBtn = createTabBtn(400, "Credits", false)
 local settingsTabBtn = createTabBtn(480, "Settings", false)
+local betaTabBtn = createTabBtn(560, "Beta", false)
 
 local function createTabFrame(visible)
     local frame = Instance.new("ScrollingFrame")
@@ -259,7 +265,7 @@ local function createTabFrame(visible)
     frame.BackgroundTransparency = 1
     frame.BorderSizePixel = 0
     frame.ScrollBarThickness = 4
-    frame.CanvasSize = UDim2.new(0, 0, 0, 550) 
+    frame.CanvasSize = UDim2.new(0, 0, 0, 600) 
     frame.Visible = visible
     frame.Parent = mainFrame
     return frame
@@ -272,6 +278,7 @@ local aimbotTabFrame = createTabFrame(false)
 local configTabFrame = createTabFrame(false)
 local creditsTabFrame = createTabFrame(false)
 local settingsTabFrame = createTabFrame(false)
+local betaTabFrame = createTabFrame(false)
 
 local function switchTab(activeBtn, activeFrame)
     mainTabFrame.Visible = false
@@ -281,8 +288,9 @@ local function switchTab(activeBtn, activeFrame)
     configTabFrame.Visible = false
     creditsTabFrame.Visible = false
     settingsTabFrame.Visible = false
+    betaTabFrame.Visible = false
     
-    for _, btn in ipairs({mainTabBtn, toolsTabBtn, espTabBtn, aimbotTabBtn, configTabBtn, creditsTabBtn, settingsTabBtn}) do
+    for _, btn in ipairs({mainTabBtn, toolsTabBtn, espTabBtn, aimbotTabBtn, configTabBtn, creditsTabBtn, settingsTabBtn, betaTabBtn}) do
         TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 30), TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
     end
 
@@ -297,6 +305,7 @@ aimbotTabBtn.MouseButton1Click:Connect(function() switchTab(aimbotTabBtn, aimbot
 configTabBtn.MouseButton1Click:Connect(function() switchTab(configTabBtn, configTabFrame) end)
 creditsTabBtn.MouseButton1Click:Connect(function() switchTab(creditsTabBtn, creditsTabFrame) end)
 settingsTabBtn.MouseButton1Click:Connect(function() switchTab(settingsTabBtn, settingsTabFrame) end)
+betaTabBtn.MouseButton1Click:Connect(function() switchTab(betaTabBtn, betaTabFrame) end)
 
 -- ===================== CREDITS =====================
 local creditsText = Instance.new("TextLabel")
@@ -492,7 +501,7 @@ end)
 
 setHitboxSlider = createSlider(toolsTabFrame, 155, "Hitbox Størrelse", 2, 50, hitboxSize, function(v) hitboxSize = v end)
 
--- ===================== AIMBOT & TRIGGERBOT INNHOLD =====================
+-- ===================== AIMBOT INNHOLD =====================
 createButton(aimbotTabFrame, 15, 15, 130, "Aimbot: AV", function(btn)
     aimbotEnabled = not aimbotEnabled
     if aimbotEnabled then btn.Text = "Aimbot: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 100, 0)}):Play()
@@ -517,34 +526,37 @@ createButton(aimbotTabFrame, 155, 60, 130, "Sjekk Vegger: AV", function(btn)
     else btn.Text = "Sjekk Vegger: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
 end)
 
--- NY: Triggerbot-knapp lagt til i layouten
-createButton(aimbotTabFrame, 15, 105, 270, "Triggerbot: AV", function(btn)
-    triggerbotEnabled = not triggerbotEnabled
-    if triggerbotEnabled then btn.Text = "Triggerbot: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 100)}):Play()
-    else btn.Text = "Triggerbot: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
-end)
-
-createButton(aimbotTabFrame, 15, 150, 270, "Sikt på: Hodet", function(btn)
+createButton(aimbotTabFrame, 15, 105, 270, "Sikt på: Hodet", function(btn)
     targetPartIndex = targetPartIndex + 1
     if targetPartIndex > 3 then targetPartIndex = 1 end
     btn.Text = "Sikt på: " .. targetParts[targetPartIndex]
 end)
 
-createButton(aimbotTabFrame, 15, 195, 270, "Aimbot Team Check: AV", function(btn)
+createButton(aimbotTabFrame, 15, 150, 270, "Aimbot Team Check: AV", function(btn)
     aimbotTeamCheckEnabled = not aimbotTeamCheckEnabled
     if aimbotTeamCheckEnabled then btn.Text = "Aimbot Team Check: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
     else btn.Text = "Aimbot Team Check: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
 end)
 
-setAimbotSmoothSlider = createSlider(aimbotTabFrame, 240, "Aimbot Smoothness", 1, 100, aimbotSmoothness, function(v) aimbotSmoothness = v end)
+setAimbotSmoothSlider = createSlider(aimbotTabFrame, 195, "Aimbot Smoothness", 1, 100, aimbotSmoothness, function(v) aimbotSmoothness = v end)
 
-createButton(aimbotTabFrame, 15, 295, 270, "Vis FOV Sirkel: AV", function(btn)
+createButton(aimbotTabFrame, 15, 250, 270, "Vis FOV Sirkel: AV", function(btn)
     fovCircleEnabled = not fovCircleEnabled
     if fovCircleEnabled then btn.Text = "Vis FOV Sirkel: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
     else btn.Text = "Vis FOV Sirkel: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() if fovCircle then fovCircle.Visible = false end end
 end)
 
-setFovSlider = createSlider(aimbotTabFrame, 340, "FOV Størrelse (Radius)", 20, 400, fovCircleRadius, function(v) fovCircleRadius = v end)
+setFovSlider = createSlider(aimbotTabFrame, 295, "FOV Størrelse (Radius)", 20, 400, fovCircleRadius, function(v) fovCircleRadius = v end)
+
+-- ===================== BETA INNHOLD (TRIGGERBOT) =====================
+createButton(betaTabFrame, 15, 15, 270, "Triggerbot: AV", function(btn)
+    triggerbotEnabled = not triggerbotEnabled
+    if triggerbotEnabled then btn.Text = "Triggerbot: PÅ" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 100)}):Play()
+    else btn.Text = "Triggerbot: AV" TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 55)}):Play() end
+end)
+
+setTriggerDelaySlider = createSlider(betaTabFrame, 60, "Triggerbot Forsinkelse (ms)", 0, 1000, triggerbotDelay, function(v) triggerbotDelay = v end)
+setTriggerCpsSlider = createSlider(betaTabFrame, 115, "Skudd i sekundet (CPS)", 1, 30, triggerbotCPS, function(v) triggerbotCPS = v end)
 
 -- ===================== ESP MOTOR & OPPDATERINGER =====================
 local function updateESP(char)
@@ -769,7 +781,6 @@ Players.PlayerRemoving:Connect(function(p)
     if tracerFrames[p.UserId] then tracerFrames[p.UserId]:Destroy() tracerFrames[p.UserId] = nil end
 end)
 
-
 -- ===================== SETTINGS INNHOLD =====================
 local menuKeybind = Enum.KeyCode.RightShift 
 local isChangingKey = false
@@ -829,7 +840,6 @@ setBlurEffect = function(state)
 end
 blurBtn = createButton(settingsTabFrame, 15, 155, 270, "Uskarp Bakgrunn (Blur): AV", function() setBlurEffect(not blurEnabled) end)
 
-
 -- ===================== CONFIG SYSTEM =====================
 local configLabel = Instance.new("TextLabel")
 configLabel.Size = UDim2.new(1, -30, 0, 40)
@@ -847,7 +857,8 @@ local function saveConfig()
     local configData = {
         flySpeed = flySpeed, currentWalkSpeed = currentWalkSpeed, currentJumpPower = currentJumpPower, hitboxSize = hitboxSize,
         aimbotSmoothness = aimbotSmoothness, fovCircleRadius = fovCircleRadius, espColorR = espColorR, espColorG = espColorG, espColorB = espColorB,
-        menuTransparency = menuTransparency, rainbowMenuBorder = rainbowMenuBorder, blurEnabled = blurEnabled
+        menuTransparency = menuTransparency, rainbowMenuBorder = rainbowMenuBorder, blurEnabled = blurEnabled,
+        triggerbotDelay = triggerbotDelay, triggerbotCPS = triggerbotCPS
     }
     local success = pcall(function() writefile("MikaelConfig.json", HttpService:JSONEncode(configData)) end)
     return success
@@ -872,6 +883,9 @@ local function loadConfig()
             if data.menuTransparency then setMenuTransparencySlider(data.menuTransparency) end
             if data.rainbowMenuBorder ~= nil then setRainbowBorder(data.rainbowMenuBorder) end
             if data.blurEnabled ~= nil then setBlurEffect(data.blurEnabled) end
+            
+            if data.triggerbotDelay then setTriggerDelaySlider(data.triggerbotDelay) end
+            if data.triggerbotCPS then setTriggerCpsSlider(data.triggerbotCPS) end
 
             return true
         end
@@ -1018,18 +1032,43 @@ RunService.RenderStepped:Connect(function()
         end
     end) end
 
-    -- NY: Kjerne-logikk for Triggerbot
-    if triggerbotEnabled and os.clock() - lastTrigger > 0.05 and mouse.Target then
+    -- ===================== ULTRA-STABIL TRIGGERBOT LOGIKK (v2.1.2) =====================
+    if triggerbotEnabled then
         local targetPart = mouse.Target
-        local targetChar = targetPart.Parent
-        if targetChar and not targetChar:FindFirstChildOfClass("Humanoid") and targetChar.Parent then
-            targetChar = targetChar.Parent
+        local model = nil
+        
+        local function finnKarakterModell(part)
+            local current = part
+            while current and current ~= workspace do
+                if current:IsA("Model") and current:FindFirstChildOfClass("Humanoid") then
+                    return current
+                end
+                current = current.Parent
+            end
+            return nil
+        end
+
+        if targetPart then
+            model = finnKarakterModell(targetPart)
         end
         
-        if targetChar and targetChar ~= player.Character then
-            local hum = targetChar:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then
-                local pTarget = Players:GetPlayerFromCharacter(targetChar)
+        if not model then
+            local mouseLoc = UserInputService:GetMouseLocation()
+            local screenRay = camera:ViewportPointToRay(mouseLoc.X, mouseLoc.Y)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+            raycastParams.FilterDescendantsInstances = {player.Character}
+            
+            local rayResult = workspace:Raycast(screenRay.Origin, screenRay.Direction * 1000, raycastParams)
+            if rayResult and rayResult.Instance then
+                model = finnKarakterModell(rayResult.Instance)
+            end
+        end
+
+        local validTargetChar = nil
+        if model and model:FindFirstChildOfClass("Humanoid") and model:FindFirstChildOfClass("Humanoid").Health > 0 then
+            if model ~= player.Character then
+                local pTarget = Players:GetPlayerFromCharacter(model)
                 local isNPC = (pTarget == nil)
                 
                 local canTrigger = false
@@ -1042,16 +1081,52 @@ RunService.RenderStepped:Connect(function()
                 end
                 
                 if canTrigger then
-                    lastTrigger = os.clock()
-                    if mouse1click then
-                        mouse1click()
-                    else
-                        local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-                        if tool then tool:Activate() end
-                    end
+                    validTargetChar = model
                 end
             end
         end
+
+        if validTargetChar then
+            if currentTargetChar ~= validTargetChar then
+                currentTargetChar = validTargetChar
+                targetAcquiredTime = os.clock()
+            end
+            
+            local timeHovered = os.clock() - targetAcquiredTime
+            local delayInSeconds = triggerbotDelay / 1000
+            local minInterval = 1 / triggerbotCPS
+            
+            if timeHovered >= delayInSeconds and (os.clock() - lastTrigger) >= minInterval then
+                lastTrigger = os.clock()
+                
+                task.spawn(function()
+                    if mouse1click then
+                        mouse1click()
+                    elseif mouse1press and mouse1release then
+                        mouse1press()
+                        task.wait(0.01)
+                        mouse1release()
+                    end
+                    
+                    pcall(function()
+                        local vim = game:GetService("VirtualInputManager")
+                        local mouseLoc = UserInputService:GetMouseLocation()
+                        vim:SendMouseButtonEvent(mouseLoc.X, mouseLoc.Y, 0, true, game, 0)
+                        task.wait(0.01)
+                        vim:SendMouseButtonEvent(mouseLoc.X, mouseLoc.Y, 0, false, game, 0)
+                    end)
+
+                    local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+                    if tool then tool:Activate() end
+                end)
+            end
+        else
+            currentTargetChar = nil
+            targetAcquiredTime = 0
+        end
+    else
+        currentTargetChar = nil
+        targetAcquiredTime = 0
     end
 
     if aimbotEnabled then
