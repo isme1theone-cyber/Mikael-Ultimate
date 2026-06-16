@@ -1,5 +1,5 @@
 -- [[
---     MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.1.2 - TRIGGERBOT OVERHAUL)
+--     MIKAEL ULTIMATE - SUPER EXECUTOR MENY (VERSJON 2.1.2 - TRIGGERBOT OVERHAUL - TEAM CHECK FIX)
 --     Inneholder: Scrollbar Tabs, Config Lagringssystem (JSON), Fly (F-Tast), Noclip, Click TP, Sitt, 
 --     Infinite Jump, Fullbright, Sliders, HITBOX EXPANDER, RGB ESP, Aimbot, HYBRID TRIGGERBOT & UI Effects!
 -- ]]
@@ -103,6 +103,34 @@ local function getHumanoid()
         return player.Character.Humanoid
     end
     return nil
+end
+
+-- ===================== ULTRAROBUST TEAM CHECK FUNKSJON =====================
+local function isTeammate(otherPlayer)
+    if not otherPlayer or otherPlayer == player then return false end
+    
+    -- Hvis en av spillerne er satt til "Neutral", er det FFA (alle mot alle), uansett lag-id
+    if player.Neutral or otherPlayer.Neutral then return false end
+    
+    -- Sjekk standard Roblox Team-objekt og lagfarge
+    if player.Team ~= nil then
+        if otherPlayer.Team == player.Team then return true end
+        if otherPlayer.TeamColor == player.TeamColor then return true end
+    end
+    
+    -- Sjekk for Custom Lag-systemer via Attributes (brukes i spill som f.eks. BedWars)
+    local playerAttr = player:GetAttribute("Team") or player:GetAttribute("Faction")
+    local otherAttr = otherPlayer:GetAttribute("Team") or otherPlayer:GetAttribute("Faction")
+    if playerAttr and otherAttr and playerAttr == otherAttr then return true end
+    
+    -- Sjekk for TeamValue-objekter inni Player-mappen
+    local playerTeamVal = player:FindFirstChild("Team") or player:FindFirstChild("TeamValue")
+    local otherTeamVal = otherPlayer:FindFirstChild("Team") or otherPlayer:FindFirstChild("TeamValue")
+    if playerTeamVal and otherTeamVal and playerTeamVal.Value == otherTeamVal.Value and playerTeamVal.Value ~= "" then
+        return true
+    end
+    
+    return false
 end
 
 -- ===================== SIKKERHET FOR RE-EXECUTION =====================
@@ -565,7 +593,7 @@ local function updateESP(char)
     
     if pChar == player or not pChar then return end
 
-    local isTeammate = (pChar.Team == player.Team and player.Team ~= nil)
+    local isTeammate = isTeammate(pChar)
     local showHighlight = espEnabled and not (espTeamCheckEnabled and isTeammate)
     local showNames = espNamesEnabled and not (espTeamCheckEnabled and isTeammate)
     local showHealth = espHealthEnabled and not (espTeamCheckEnabled and isTeammate)
@@ -964,7 +992,7 @@ local function getClosestTargetToMouse()
         if not char then return end
         
         local p = Players:GetPlayerFromCharacter(char)
-        if aimbotTeamCheckEnabled and p and p.Team == player.Team and player.Team ~= nil then
+        if aimbotTeamCheckEnabled and p and isTeammate(p) then
             return
         end
 
@@ -1073,7 +1101,7 @@ RunService.RenderStepped:Connect(function()
                 
                 local canTrigger = false
                 if pTarget then
-                    if not (aimbotTeamCheckEnabled and pTarget.Team == player.Team and player.Team ~= nil) then
+                    if not (aimbotTeamCheckEnabled and isTeammate(pTarget)) then
                         canTrigger = true
                     end
                 elseif isNPC and npcAimbotEnabled then
@@ -1178,7 +1206,7 @@ RunService.RenderStepped:Connect(function()
                 updateESP(char)
             end
 
-            local isTeammate = (p.Team == player.Team and player.Team ~= nil)
+            local isTeammate = isTeammate(p)
             local showTracers = espLinesEnabled and not (espTeamCheckEnabled and isTeammate)
 
             if showTracers and char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
